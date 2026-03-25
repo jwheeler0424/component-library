@@ -1,7 +1,8 @@
 import { Debouncer } from '@tanstack/pacer'
 import * as React from 'react'
+import { Input } from './input'
 import type { DebouncerOptions } from '@tanstack/pacer'
-import { Input } from '@/components/ui/input'
+import { useIsomorphicLayoutEffect } from '@/hooks/use-isomorphic-effect'
 
 type Mode = 'leading' | 'trailing' | 'both'
 
@@ -12,8 +13,8 @@ export type InputDebouncedHandle = {
   setOptions: (
     options: Partial<DebouncerOptions<(next: string) => void>>,
   ) => void
-  getDebouncedValue: () => string
-  getPendingValue: () => string
+  getDebouncedValue: () => string | undefined
+  getPendingValue: () => string | undefined
 }
 
 export type InputDebouncedProps =
@@ -34,7 +35,8 @@ export type InputDebouncedProps =
     mode?: Mode
     leading?: boolean
     trailing?: boolean
-    onDebouncedChange?: (value: string) => void
+    onValueChange?: (value: string | undefined) => void
+    onDebouncedChange?: (value: string | undefined) => void
     emitOnMount?: boolean
     flushOnBlur?: boolean
     cancelOnEscape?: boolean
@@ -48,155 +50,219 @@ export type InputDebouncedProps =
     getStatusMessage?: (state: {
       isDebouncing: boolean
       error?: string
-      value: string
-      debouncedValue: string
+      value: string | undefined
+      debouncedValue: string | undefined
     }) => string | null | undefined
     devKey?: string
+    ref?: React.Ref<HTMLInputElement | InputDebouncedHandle>
   }
 
-const InputDebounced = React.forwardRef<
-  HTMLInputElement | InputDebouncedHandle,
-  InputDebouncedProps
->(
-  (
-    {
-      value: controlledValue,
-      defaultValue,
-      mode,
-      onChange,
-      leading = false,
-      trailing = true,
-      emitOnMount = false,
-      flushOnBlur = false,
-      onDebouncedChange,
-      onDebounceStart,
-      onDebounceEnd,
-      waitMs = 200,
-      cancelOnEscape = false,
-      cancelOnUnmount = true,
-      describedById,
-      getStatusMessage,
-      devKey = 'InputDebounced',
-      ...rest
-    }: InputDebouncedProps,
-    forwardedRef,
-  ) => {
-    const isControlled = controlledValue !== undefined
-    const [uncontrolledValue, setUncontrolledValue] =
-      React.useState(defaultValue)
-    const [debouncedValue, setDebouncedValue] = React.useState(
-      controlledValue ?? defaultValue,
-    )
-    const [isDebouncing, setIsDebouncing] = React.useState(false)
+function normalizeInputValue(
+  value:
+    | string
+    | number
+    | (ReadonlyArray<string> & string)
+    | (ReadonlyArray<string> & number)
+    | undefined,
+): string {
+  if (value === undefined || !value) return ''
+  return String(value)
+}
 
-    const inputValue = isControlled ? controlledValue : uncontrolledValue
+function normalizeDebouncedValue(value: string): string | undefined {
+  if (
+    !value ||
+    value === 'undefined' ||
+    value === 'null' ||
+    value.trim().length <= 0
+  ) {
+    return undefined
+  }
+  return value
+}
 
-    // Map mode -> leading/trailing
-    const { resolvedLeading, resolvedTrailing } = React.useMemo(() => {
-      if (mode === 'leading')
-        return { resolvedLeading: true, resolvedTrailing: false }
-      if (mode === 'both')
-        return { resolvedLeading: true, resolvedTrailing: true }
-      return { resolvedLeading: leading, resolvedTrailing: trailing }
-    }, [mode, leading, trailing])
+function InputDebounced({
+  value: controlledValue,
+  defaultValue,
+  mode,
+  onChange,
+  onValueChange,
+  leading = false,
+  trailing = true,
+  emitOnMount = false,
+  flushOnBlur = false,
+  onDebouncedChange,
+  onDebounceStart,
+  onDebounceEnd,
+  waitMs = 200,
+  cancelOnEscape = false,
+  cancelOnUnmount = true,
+  describedById,
+  getStatusMessage,
+  devKey = 'InputDebounced',
+  ref,
+  ...rest
+}: InputDebouncedProps) {
+  const isControlled = controlledValue !== undefined
+  const onDebounceStartRef = React.useRef(onDebounceStart)
+  const onDebounceEndRef = React.useRef(onDebounceEnd)
+  const onDebouncedChangeRef = React.useRef(onDebouncedChange)
 
-    const debouncer = React.useMemo(() => {
-      const fn = (next: string) => {
-        setDebouncedValue(next)
-        setIsDebouncing(false)
-        onDebounceEnd?.()
-      }
+  useIsomorphicLayoutEffect(() => {
+    onDebounceStartRef.current = onDebounceStart
+  }, [onDebounceStart])
 
-      return new Debouncer(fn, {
-        key: devKey,
-        wait: waitMs,
-        leading: resolvedLeading,
-        trailing: resolvedTrailing,
-      })
-    }, [waitMs, resolvedLeading, resolvedTrailing, onDebounceEnd])
+  useIsomorphicLayoutEffect(() => {
+    onDebounceEndRef.current = onDebounceEnd
+  }, [onDebounceEnd])
 
-    // Push latest input value through the debouncer.
-    React.useEffect(() => {
-      setIsDebouncing(true)
-      onDebounceStart?.()
-      debouncer.maybeExecute(String(inputValue))
-      return () => {
-        if (cancelOnUnmount) debouncer.cancel()
-      }
-    }, [inputValue, debouncer, cancelOnUnmount, onDebounceStart])
+  useIsomorphicLayoutEffect(() => {
+    onDebouncedChangeRef.current = onDebouncedChange
+  }, [onDebouncedChange])
 
-    // Fire consumer callback when the debounced value updates.
-    const didMountRef = React.useRef(false)
-    React.useEffect(() => {
-      if (!onDebouncedChange) return
-      if (!emitOnMount && !didMountRef.current) {
-        didMountRef.current = true
-        return
-      }
-      onDebouncedChange(String(debouncedValue))
-    }, [debouncedValue, onDebouncedChange, emitOnMount])
+  const [uncontrolledValue, setUncontrolledValue] = React.useState<string>(
+    normalizeInputValue(defaultValue),
+  )
+  const [debouncedValue, setDebouncedValue] = React.useState<
+    string | undefined
+  >(() => {
+    const initialValue = isControlled
+      ? normalizeInputValue(controlledValue)
+      : normalizeInputValue(defaultValue)
+    return normalizeDebouncedValue(initialValue)
+  })
+  const [isDebouncing, setIsDebouncing] = React.useState(false)
 
-    // Expose controls via ref
-    React.useImperativeHandle(
-      forwardedRef as React.Ref<InputDebouncedHandle>,
-      () => ({
+  const inputValue = isControlled
+    ? normalizeInputValue(controlledValue)
+    : uncontrolledValue
+
+  // Map mode -> leading/trailing
+  const { resolvedLeading, resolvedTrailing } = React.useMemo(() => {
+    if (mode === 'leading')
+      return { resolvedLeading: true, resolvedTrailing: false }
+    if (mode === 'both')
+      return { resolvedLeading: true, resolvedTrailing: true }
+    return { resolvedLeading: leading, resolvedTrailing: trailing }
+  }, [mode, leading, trailing])
+
+  const debouncer = React.useMemo(() => {
+    const fn = (next: string) => {
+      setDebouncedValue(normalizeDebouncedValue(next))
+      setIsDebouncing(false)
+      onDebounceEndRef.current?.()
+    }
+
+    return new Debouncer(fn, {
+      key: devKey,
+      wait: waitMs,
+      leading: resolvedLeading,
+      trailing: resolvedTrailing,
+    })
+  }, [waitMs, devKey, resolvedLeading, resolvedTrailing])
+
+  // Push latest input value through the debouncer.
+  useIsomorphicLayoutEffect(() => {
+    const value = normalizeDebouncedValue(inputValue) ?? ''
+    setIsDebouncing((prev) => (prev ? prev : true))
+    onDebounceStartRef.current?.()
+    debouncer.maybeExecute(value)
+    return () => {
+      if (cancelOnUnmount) debouncer.cancel()
+    }
+  }, [inputValue, debouncer, cancelOnUnmount])
+
+  // Fire consumer callback when the debounced value updates.
+  const emitDebouncedChange = React.useCallback(
+    (nextValue: string | undefined) => {
+      onDebouncedChangeRef.current?.(nextValue)
+    },
+    [],
+  )
+
+  const didMountRef = React.useRef(false)
+  useIsomorphicLayoutEffect(() => {
+    if (!onDebouncedChangeRef.current) return
+    if (!emitOnMount && !didMountRef.current) {
+      didMountRef.current = true
+      return
+    }
+    emitDebouncedChange(debouncedValue)
+  }, [debouncedValue, emitOnMount, emitDebouncedChange])
+
+  // Expose controls via ref
+  React.useImperativeHandle(
+    ref as React.Ref<InputDebouncedHandle>,
+    () => {
+      const input = normalizeDebouncedValue(inputValue)
+      return {
         flush: () => debouncer.flush(),
         cancel: () => debouncer.cancel(),
         reset: () => debouncer.reset(),
         setOptions: (options) => debouncer.setOptions(options),
-        getDebouncedValue: () => String(debouncedValue),
-        getPendingValue: () => String(inputValue),
-      }),
-      [debouncer, debouncedValue, inputValue],
-    )
-
-    const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const next = event.target.value
-      if (!isControlled) setUncontrolledValue(next)
-
-      onChange?.(event)
-    }
-
-    const handleBlur = (event: React.FocusEvent<HTMLInputElement>) => {
-      if (flushOnBlur) debouncer.flush()
-      rest.onBlur?.(event)
-    }
-
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (cancelOnEscape && event.key === 'Escape') {
-        debouncer.cancel()
-        if (!isControlled) {
-          setUncontrolledValue(debouncedValue) // revert uncontrolled to last debounced
-        }
+        getDebouncedValue: () => debouncedValue,
+        getPendingValue: () => input,
+        getStatusMessage: () => {
+          if (!getStatusMessage) return ''
+          return (
+            getStatusMessage({
+              isDebouncing,
+              value: input,
+              debouncedValue: debouncedValue,
+            }) ?? ''
+          )
+        },
       }
-      rest.onKeyDown?.(event)
+    },
+    [debouncer, debouncedValue, inputValue, getStatusMessage, isDebouncing],
+  )
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const next = event.target.value
+    if (!isControlled) setUncontrolledValue(next)
+
+    onChange?.(event)
+    onValueChange?.(event.target.value)
+  }
+
+  const handleBlur = (event: React.FocusEvent<HTMLInputElement>) => {
+    if (flushOnBlur) debouncer.flush()
+    rest.onBlur?.(event)
+  }
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (cancelOnEscape && event.key === 'Escape') {
+      debouncer.cancel()
+      if (!isControlled) {
+        // Revert uncontrolled input to the last settled debounced value.
+        setUncontrolledValue(normalizeInputValue(debouncedValue))
+      }
     }
+    rest.onKeyDown?.(event)
+  }
 
-    const ariaInvalid =
-      rest['aria-invalid'] === true ||
-      rest['aria-invalid'] === 'true' ||
-      undefined
+  const ariaInvalid =
+    rest['aria-invalid'] === true ||
+    rest['aria-invalid'] === 'true' ||
+    undefined
 
-    const ariaDescribedBy =
-      [rest['aria-describedby'], describedById].filter(Boolean).join(' ') ||
-      undefined
+  const ariaDescribedBy =
+    [rest['aria-describedby'], describedById].filter(Boolean).join(' ') ||
+    undefined
 
-    return (
-      <Input
-        ref={forwardedRef as React.Ref<HTMLInputElement>}
-        value={inputValue}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        data-state={isDebouncing ? 'debouncing' : 'settled'}
-        aria-invalid={ariaInvalid}
-        aria-describedby={ariaDescribedBy}
-        {...rest}
-      />
-    )
-  },
-)
-
-InputDebounced.displayName = 'InputDebounced'
+  return (
+    <Input
+      ref={ref as React.Ref<HTMLInputElement>}
+      value={inputValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      data-state={isDebouncing ? 'debouncing' : 'settled'}
+      aria-invalid={ariaInvalid}
+      aria-describedby={ariaDescribedBy}
+      {...rest}
+    />
+  )
+}
 
 export { InputDebounced }

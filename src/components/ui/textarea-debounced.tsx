@@ -1,7 +1,8 @@
 import { Debouncer } from '@tanstack/pacer'
 import * as React from 'react'
+import { Textarea } from './textarea'
 import type { DebouncerOptions } from '@tanstack/pacer'
-import { Textarea } from '@/components/ui/textarea'
+import { useIsomorphicLayoutEffect } from '@/hooks/use-isomorphic-effect'
 
 type Mode = 'leading' | 'trailing' | 'both'
 
@@ -52,150 +53,189 @@ export type TextareaDebouncedProps =
       debouncedValue: string
     }) => string | null | undefined
     devKey?: string
+    ref?: React.Ref<HTMLTextAreaElement | TextareaDebouncedHandle>
   }
 
-const TextareaDebounced = React.forwardRef<
-  HTMLTextAreaElement | TextareaDebouncedHandle,
-  TextareaDebouncedProps
->(
-  (
-    {
-      value: controlledValue,
-      defaultValue,
-      mode,
-      onChange,
-      leading = false,
-      trailing = true,
-      emitOnMount = false,
-      flushOnBlur = false,
-      onDebouncedChange,
-      onDebounceStart,
-      onDebounceEnd,
-      waitMs = 200,
-      cancelOnEscape = false,
-      cancelOnUnmount = true,
-      describedById,
-      getStatusMessage,
-      devKey = 'TextareaDebounced',
-      ...rest
-    }: TextareaDebouncedProps,
-    forwardedRef,
-  ) => {
-    const isControlled = controlledValue !== undefined
-    const [uncontrolledValue, setUncontrolledValue] =
-      React.useState(defaultValue)
-    const [debouncedValue, setDebouncedValue] = React.useState(
-      controlledValue ?? defaultValue,
-    )
-    const [isDebouncing, setIsDebouncing] = React.useState(false)
+function normalizeTextareaValue(
+  value:
+    | string
+    | number
+    | (ReadonlyArray<string> & string)
+    | (ReadonlyArray<string> & number)
+    | undefined,
+): string {
+  if (value === undefined || !value) return ''
+  return String(value)
+}
 
-    const textareaValue = isControlled ? controlledValue : uncontrolledValue
+function TextareaDebounced({
+  value: controlledValue,
+  defaultValue,
+  mode,
+  onChange,
+  leading = false,
+  trailing = true,
+  emitOnMount = false,
+  flushOnBlur = false,
+  onDebouncedChange,
+  onDebounceStart,
+  onDebounceEnd,
+  waitMs = 200,
+  cancelOnEscape = false,
+  cancelOnUnmount = true,
+  describedById,
+  getStatusMessage,
+  devKey = 'TextareaDebounced',
+  ref,
+  ...rest
+}: TextareaDebouncedProps) {
+  const isControlled = controlledValue !== undefined
+  const onDebounceStartRef = React.useRef(onDebounceStart)
+  const onDebounceEndRef = React.useRef(onDebounceEnd)
+  const onDebouncedChangeRef = React.useRef(onDebouncedChange)
 
-    // Map mode -> leading/trailing
-    const { resolvedLeading, resolvedTrailing } = React.useMemo(() => {
-      if (mode === 'leading')
-        return { resolvedLeading: true, resolvedTrailing: false }
-      if (mode === 'both')
-        return { resolvedLeading: true, resolvedTrailing: true }
-      return { resolvedLeading: leading, resolvedTrailing: trailing }
-    }, [mode, leading, trailing])
+  useIsomorphicLayoutEffect(() => {
+    onDebounceStartRef.current = onDebounceStart
+  }, [onDebounceStart])
 
-    const debouncer = React.useMemo(() => {
-      const fn = (next: string) => {
-        setDebouncedValue(next)
-        setIsDebouncing(false)
-        onDebounceEnd?.()
-      }
+  useIsomorphicLayoutEffect(() => {
+    onDebounceEndRef.current = onDebounceEnd
+  }, [onDebounceEnd])
 
-      return new Debouncer(fn, {
-        key: devKey,
-        wait: waitMs,
-        leading: resolvedLeading,
-        trailing: resolvedTrailing,
-      })
-    }, [waitMs, resolvedLeading, resolvedTrailing, onDebounceEnd])
+  useIsomorphicLayoutEffect(() => {
+    onDebouncedChangeRef.current = onDebouncedChange
+  }, [onDebouncedChange])
 
-    // Push latest textarea value through the debouncer.
-    React.useEffect(() => {
-      setIsDebouncing(true)
-      onDebounceStart?.()
-      debouncer.maybeExecute(String(textareaValue))
-      return () => {
-        if (cancelOnUnmount) debouncer.cancel()
-      }
-    }, [textareaValue, debouncer, cancelOnUnmount, onDebounceStart])
+  const [uncontrolledValue, setUncontrolledValue] = React.useState<string>(
+    normalizeTextareaValue(defaultValue),
+  )
+  const [debouncedValue, setDebouncedValue] = React.useState<string>(() => {
+    if (isControlled) return normalizeTextareaValue(controlledValue)
+    return normalizeTextareaValue(defaultValue)
+  })
+  const [isDebouncing, setIsDebouncing] = React.useState(false)
 
-    // Fire consumer callback when the debounced value updates.
-    const didMountRef = React.useRef(false)
-    React.useEffect(() => {
-      if (!onDebouncedChange) return
-      if (!emitOnMount && !didMountRef.current) {
-        didMountRef.current = true
-        return
-      }
-      onDebouncedChange(String(debouncedValue))
-    }, [debouncedValue, onDebouncedChange, emitOnMount])
+  const textareaValue = isControlled
+    ? normalizeTextareaValue(controlledValue)
+    : uncontrolledValue
 
-    // Expose controls via ref
-    React.useImperativeHandle(
-      forwardedRef as React.Ref<TextareaDebouncedHandle>,
-      () => ({
-        flush: () => debouncer.flush(),
-        cancel: () => debouncer.cancel(),
-        reset: () => debouncer.reset(),
-        setOptions: (options) => debouncer.setOptions(options),
-        getDebouncedValue: () => String(debouncedValue),
-        getPendingValue: () => String(textareaValue),
-      }),
-      [debouncer, debouncedValue, textareaValue],
-    )
+  // Map mode -> leading/trailing
+  const { resolvedLeading, resolvedTrailing } = React.useMemo(() => {
+    if (mode === 'leading')
+      return { resolvedLeading: true, resolvedTrailing: false }
+    if (mode === 'both')
+      return { resolvedLeading: true, resolvedTrailing: true }
+    return { resolvedLeading: leading, resolvedTrailing: trailing }
+  }, [mode, leading, trailing])
 
-    const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const next = event.target.value
-      if (!isControlled) setUncontrolledValue(next)
-
-      onChange?.(event)
+  const debouncer = React.useMemo(() => {
+    const fn = (next: string) => {
+      setDebouncedValue(next)
+      setIsDebouncing(false)
+      onDebounceEndRef.current?.()
     }
 
-    const handleBlur = (event: React.FocusEvent<HTMLTextAreaElement>) => {
-      if (flushOnBlur) debouncer.flush()
-      rest.onBlur?.(event)
-    }
+    return new Debouncer(fn, {
+      key: devKey,
+      wait: waitMs,
+      leading: resolvedLeading,
+      trailing: resolvedTrailing,
+    })
+  }, [waitMs, devKey, resolvedLeading, resolvedTrailing])
 
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (cancelOnEscape && event.key === 'Escape') {
-        debouncer.cancel()
-        if (!isControlled) {
-          setUncontrolledValue(debouncedValue) // revert uncontrolled to last debounced
-        }
+  // Push latest textarea value through the debouncer.
+  useIsomorphicLayoutEffect(() => {
+    setIsDebouncing((prev) => (prev ? prev : true))
+    onDebounceStartRef.current?.()
+    debouncer.maybeExecute(textareaValue)
+    return () => {
+      if (cancelOnUnmount) debouncer.cancel()
+    }
+  }, [textareaValue, debouncer, cancelOnUnmount])
+
+  // Fire consumer callback when the debounced value updates.
+  const emitDebouncedChange = React.useCallback((nextValue: string) => {
+    onDebouncedChangeRef.current?.(nextValue)
+  }, [])
+
+  const didMountRef = React.useRef(false)
+  useIsomorphicLayoutEffect(() => {
+    if (!onDebouncedChangeRef.current) return
+    if (!emitOnMount && !didMountRef.current) {
+      didMountRef.current = true
+      return
+    }
+    emitDebouncedChange(debouncedValue)
+  }, [debouncedValue, emitOnMount, emitDebouncedChange])
+
+  // Expose controls via ref
+  React.useImperativeHandle(
+    ref as React.Ref<TextareaDebouncedHandle>,
+    () => ({
+      flush: () => debouncer.flush(),
+      cancel: () => debouncer.cancel(),
+      reset: () => debouncer.reset(),
+      setOptions: (options) => debouncer.setOptions(options),
+      getDebouncedValue: () => debouncedValue,
+      getPendingValue: () => textareaValue,
+      getStatusMessage: () => {
+        if (!getStatusMessage) return undefined
+        return getStatusMessage({
+          isDebouncing,
+          value: textareaValue,
+          debouncedValue: debouncedValue,
+        })
+      },
+    }),
+    [debouncer, debouncedValue, textareaValue, getStatusMessage, isDebouncing],
+  )
+
+  const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const next = event.target.value
+    if (!isControlled) setUncontrolledValue(next)
+
+    onChange?.(event)
+  }
+
+  const handleBlur = (event: React.FocusEvent<HTMLTextAreaElement>) => {
+    if (flushOnBlur) debouncer.flush()
+    rest.onBlur?.(event)
+  }
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (cancelOnEscape && event.key === 'Escape') {
+      debouncer.cancel()
+      if (!isControlled) {
+        // Revert uncontrolled textarea to the last settled debounced value.
+        setUncontrolledValue(normalizeTextareaValue(debouncedValue))
       }
-      rest.onKeyDown?.(event)
     }
+    rest.onKeyDown?.(event)
+  }
 
-    const ariaInvalid =
-      rest['aria-invalid'] === true ||
-      rest['aria-invalid'] === 'true' ||
-      undefined
+  const ariaInvalid =
+    rest['aria-invalid'] === true ||
+    rest['aria-invalid'] === 'true' ||
+    undefined
 
-    const ariaDescribedBy =
-      [rest['aria-describedby'], describedById].filter(Boolean).join(' ') ||
-      undefined
+  const ariaDescribedBy =
+    [rest['aria-describedby'], describedById].filter(Boolean).join(' ') ||
+    undefined
 
-    return (
-      <Textarea
-        ref={forwardedRef as React.Ref<HTMLTextAreaElement>}
-        value={textareaValue}
-        onChange={handleChange}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-        data-state={isDebouncing ? 'debouncing' : 'settled'}
-        aria-invalid={ariaInvalid}
-        aria-describedby={ariaDescribedBy}
-        {...rest}
-      />
-    )
-  },
-)
+  return (
+    <Textarea
+      ref={ref as React.Ref<HTMLTextAreaElement>}
+      value={textareaValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      data-state={isDebouncing ? 'debouncing' : 'settled'}
+      aria-invalid={ariaInvalid}
+      aria-describedby={ariaDescribedBy}
+      {...rest}
+    />
+  )
+}
 
 TextareaDebounced.displayName = 'TextareaDebounced'
 
