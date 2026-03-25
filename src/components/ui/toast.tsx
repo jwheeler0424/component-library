@@ -1,32 +1,21 @@
 'use client'
 
-import { toast as sonnerToast } from 'sonner'
 import type React from 'react'
 import type { ExternalToast } from 'sonner'
+
+import { toast as sonnerToast } from 'sonner'
 
 type titleT = (() => React.ReactNode) | React.ReactNode
 
 type ToastProps = ExternalToast
 
-function toast(
-  message: titleT,
-  data?: ToastProps,
-  type: 'global' | 'feature' = 'global',
-) {
+function toast(message: titleT, data?: ToastProps, type: 'global' | 'feature' = 'global') {
   return sonnerToast(message, { ...data, toasterId: type })
 }
-toast.success = (
-  message: titleT,
-  data?: ToastProps,
-  type: 'global' | 'feature' = 'global',
-) => {
+toast.success = (message: titleT, data?: ToastProps, type: 'global' | 'feature' = 'global') => {
   return sonnerToast.success(message, { ...data, toasterId: type })
 }
-toast.error = (
-  message: titleT,
-  data?: ToastProps,
-  type: 'global' | 'feature' = 'global',
-) => {
+toast.error = (message: titleT, data?: ToastProps, type: 'global' | 'feature' = 'global') => {
   return sonnerToast.error(message, { ...data, toasterId: type })
 }
 toast.promise = function <TPromise>(
@@ -36,11 +25,7 @@ toast.promise = function <TPromise>(
 ) {
   return sonnerToast.promise<TPromise>(promise, { ...data, toasterId: type })
 }
-toast.loading = (
-  message: titleT,
-  data?: ToastProps,
-  type: 'global' | 'feature' = 'global',
-) => {
+toast.loading = (message: titleT, data?: ToastProps, type: 'global' | 'feature' = 'global') => {
   return sonnerToast.loading(message, { ...data, toasterId: type })
 }
 toast.dismiss = (id: string) => {
@@ -57,10 +42,7 @@ toastGlobal.success = (message: titleT, data?: ToastProps) => {
 toastGlobal.error = (message: titleT, data?: ToastProps) => {
   return sonnerToast.error(message, { ...data, toasterId: 'global' })
 }
-toastGlobal.promise = function <TPromise>(
-  promise: Promise<TPromise>,
-  data?: ToastProps,
-) {
+toastGlobal.promise = function <TPromise>(promise: Promise<TPromise>, data?: ToastProps) {
   return sonnerToast.promise<TPromise>(promise, {
     ...data,
     toasterId: 'global',
@@ -83,10 +65,7 @@ toastFeature.success = (message: titleT, data?: ToastProps) => {
 toastFeature.error = (message: titleT, data?: ToastProps) => {
   return sonnerToast.error(message, { ...data, toasterId: 'feature' })
 }
-toastFeature.promise = function <TPromise>(
-  promise: Promise<TPromise>,
-  data?: ToastProps,
-) {
+toastFeature.promise = function <TPromise>(promise: Promise<TPromise>, data?: ToastProps) {
   return sonnerToast.promise<TPromise>(promise, {
     ...data,
     toasterId: 'feature',

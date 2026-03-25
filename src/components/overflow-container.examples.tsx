@@ -10,7 +10,12 @@
  * Imports directly from ./overflow — no inline implementation shims.
  */
 
+import type { ReactNode } from 'react'
+
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+
+import type { OverflowInfo } from './overflow'
+
 import {
   Overflow,
   OverflowActions,
@@ -22,8 +27,6 @@ import {
   useOverflow,
   useOverflowItem,
 } from './overflow'
-import type { ReactNode } from 'react'
-import type { OverflowInfo } from './overflow'
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Design tokens — applied to demo chrome only, never to Overflow components.
@@ -192,13 +195,7 @@ function Slider({
   )
 }
 
-function ActionButton({
-  children,
-  onClick,
-}: {
-  children: ReactNode
-  onClick?: () => void
-}) {
+function ActionButton({ children, onClick }: { children: ReactNode; onClick?: () => void }) {
   const [hov, setHov] = useState(false)
   return (
     <button
@@ -314,8 +311,7 @@ function DropdownMore({ hiddenCount, hiddenChildren }: OverflowInfo) {
                 ;(e.currentTarget as HTMLElement).style.background = C.raised
               }}
               onMouseLeave={(e) => {
-                ;(e.currentTarget as HTMLElement).style.background =
-                  'transparent'
+                ;(e.currentTarget as HTMLElement).style.background = 'transparent'
               }}
             >
               {child}
@@ -424,16 +420,10 @@ function Ex1() {
           >
             {NAV_ITEMS.map((t) => (
               <OverflowItem key={t}>
-                <NavPill
-                  label={t}
-                  active={active === t}
-                  onClick={() => setActive(t)}
-                />
+                <NavPill label={t} active={active === t} onClick={() => setActive(t)} />
               </OverflowItem>
             ))}
-            <OverflowIndicator>
-              {(info) => <DropdownMore {...info} />}
-            </OverflowIndicator>
+            <OverflowIndicator>{(info) => <DropdownMore {...info} />}</OverflowIndicator>
           </OverflowGroup>
           <OverflowActions
             style={{
@@ -447,9 +437,7 @@ function Ex1() {
         </Overflow>
       </Box>
       <Slider label="WIDTH" value={w} min={120} max={680} onChange={setW} />
-      <span style={{ fontSize: 11, color: C.muted, fontFamily: C.mono }}>
-        active: "{active}"
-      </span>
+      <span style={{ fontSize: 11, color: C.muted, fontFamily: C.mono }}>active: "{active}"</span>
     </Shell>
   )
 }
@@ -480,10 +468,7 @@ function Ex2() {
       description="OverflowIndicator with a static ReactNode (not a render function). useOverflow() inside it reads hiddenCount reactively."
     >
       <Box w={w} h={36}>
-        <Overflow
-          orientation="horizontal"
-          style={{ height: '100%', alignItems: 'center' }}
-        >
+        <Overflow orientation="horizontal" style={{ height: '100%', alignItems: 'center' }}>
           <OverflowGroup
             style={{
               display: 'flex',
@@ -503,11 +488,7 @@ function Ex2() {
                 }}
               >
                 {i > 0 && (
-                  <span
-                    style={{ color: C.muted, fontSize: 12, userSelect: 'none' }}
-                  >
-                    /
-                  </span>
+                  <span style={{ color: C.muted, fontSize: 12, userSelect: 'none' }}>/</span>
                 )}
                 <span
                   style={{
@@ -556,13 +537,8 @@ function Ex3() {
       description="keepMounted=false: hidden items are fully unmounted. Compare with keepMounted=true (default) where they stay in DOM with aria-hidden + tabIndex=-1."
     >
       <Box w={w} h={44}>
-        <Overflow
-          orientation="horizontal"
-          style={{ height: '100%', alignItems: 'center' }}
-        >
-          <OverflowGroup
-            style={{ display: 'flex', alignItems: 'center', height: '100%' }}
-          >
+        <Overflow orientation="horizontal" style={{ height: '100%', alignItems: 'center' }}>
+          <OverflowGroup style={{ display: 'flex', alignItems: 'center', height: '100%' }}>
             {AVATARS.map(({ name, color }) => (
               <OverflowItem key={name} keepMounted={false}>
                 <div
@@ -674,10 +650,7 @@ function Ex4() {
         [data-slot="overflow-indicator"][data-visible] { opacity: 1; pointer-events: auto; }
       `}</style>
       <Box w={w} h={40}>
-        <Overflow
-          orientation="horizontal"
-          style={{ height: '100%', alignItems: 'center' }}
-        >
+        <Overflow orientation="horizontal" style={{ height: '100%', alignItems: 'center' }}>
           <OverflowGroup
             style={{
               display: 'flex',
@@ -794,11 +767,7 @@ function Ex5() {
                     minHeight: 36,
                   }}
                 >
-                  <span
-                    style={{ fontSize: 13, flexShrink: 0, lineHeight: 1.45 }}
-                  >
-                    {n.icon}
-                  </span>
+                  <span style={{ fontSize: 13, flexShrink: 0, lineHeight: 1.45 }}>{n.icon}</span>
                   <span
                     style={{
                       flex: 1,
@@ -844,9 +813,7 @@ function Ex5() {
                 </button>
               )}
             </OverflowIndicator>
-            <OverflowActions
-              style={{ display: 'flex', justifyContent: 'flex-end' }}
-            >
+            <OverflowActions style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <ViewAllButton />
             </OverflowActions>
           </OverflowGroup>
@@ -944,13 +911,7 @@ function Ex6() {
                   }}
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <circle
-                      cx="6"
-                      cy="6"
-                      r="5"
-                      stroke="currentColor"
-                      strokeWidth="1.2"
-                    />
+                    <circle cx="6" cy="6" r="5" stroke="currentColor" strokeWidth="1.2" />
                     <path
                       d="M4 6h4M6 4v4"
                       stroke="currentColor"
@@ -1114,9 +1075,7 @@ function TeamCountActions() {
       }}
     >
       <span>{visibleCount} shown</span>
-      {isOverflowing && (
-        <span style={{ color: C.amber }}>{hiddenCount} hidden</span>
-      )}
+      {isOverflowing && <span style={{ color: C.amber }}>{hiddenCount} hidden</span>}
     </div>
   )
 }
@@ -1142,10 +1101,7 @@ function Ex8() {
             transition: 'width 0.06s',
           }}
         >
-          <Overflow
-            orientation="wrap"
-            style={{ flexDirection: 'column', gap: '8px', height: h }}
-          >
+          <Overflow orientation="wrap" style={{ flexDirection: 'column', gap: '8px', height: h }}>
             <OverflowGroup
               style={{
                 display: 'flex',
@@ -1438,9 +1394,7 @@ function Ex9() {
                       {STATUS_ICON[status]} {status}
                     </span>
                   </div>
-                  <span
-                    style={{ fontSize: 10, color: C.muted, fontFamily: C.mono }}
-                  >
+                  <span style={{ fontSize: 10, color: C.muted, fontFamily: C.mono }}>
                     updated {updated}
                   </span>
                 </div>
@@ -1464,9 +1418,7 @@ function Ex9() {
                   }}
                 >
                   <span style={{ fontSize: 20, color: C.muted }}>⊕</span>
-                  <span
-                    style={{ fontSize: 12, color: C.muted, fontFamily: C.sans }}
-                  >
+                  <span style={{ fontSize: 12, color: C.muted, fontFamily: C.sans }}>
                     {hiddenCount} more project{hiddenCount !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -1485,27 +1437,9 @@ function Ex9() {
           </OverflowGroup>
         </Overflow>
       </div>
-      <Slider
-        label="CONTAINER WIDTH"
-        value={w}
-        min={200}
-        max={800}
-        onChange={setW}
-      />
-      <Slider
-        label="CONTAINER HEIGHT"
-        value={h}
-        min={80}
-        max={500}
-        onChange={setH}
-      />
-      <Slider
-        label="MIN COLUMN (minmax)"
-        value={min}
-        min={100}
-        max={320}
-        onChange={setMin}
-      />
+      <Slider label="CONTAINER WIDTH" value={w} min={200} max={800} onChange={setW} />
+      <Slider label="CONTAINER HEIGHT" value={h} min={80} max={500} onChange={setH} />
+      <Slider label="MIN COLUMN (minmax)" value={min} min={100} max={320} onChange={setMin} />
     </Shell>
   )
 }
@@ -1662,9 +1596,7 @@ function Ex10() {
                     minHeight: 88,
                   }}
                 >
-                  <span
-                    style={{ fontSize: 11, color: C.muted, fontFamily: C.mono }}
-                  >
+                  <span style={{ fontSize: 11, color: C.muted, fontFamily: C.mono }}>
                     +{hiddenCount} more
                   </span>
                 </div>
@@ -1701,13 +1633,7 @@ function Ex10() {
           </OverflowGroup>
         </Overflow>
       </div>
-      <Slider
-        label="CONTAINER HEIGHT"
-        value={h}
-        min={80}
-        max={500}
-        onChange={setH}
-      />
+      <Slider label="CONTAINER HEIGHT" value={h} min={80} max={500} onChange={setH} />
     </Shell>
   )
 }
@@ -1950,10 +1876,7 @@ function Ex13() {
       description="Separators register as isSeparator=true. The measurement engine trims any separator that would land as the last visible item — no dangling dividers even as the toolbar shrinks."
     >
       <Box w={w} h={46}>
-        <Overflow
-          orientation="horizontal"
-          style={{ height: '100%', alignItems: 'center' }}
-        >
+        <Overflow orientation="horizontal" style={{ height: '100%', alignItems: 'center' }}>
           <OverflowGroup
             style={{
               display: 'flex',
@@ -1965,9 +1888,7 @@ function Ex13() {
           >
             {TOOLBAR_GROUPS.map((group, gi) => (
               <React.Fragment key={gi}>
-                {gi > 0 && (
-                  <OverflowSeparator style={{ margin: '0 3px', height: 20 }} />
-                )}
+                {gi > 0 && <OverflowSeparator style={{ margin: '0 3px', height: 20 }} />}
                 {group.map(({ icon, label }) => (
                   <OverflowItem key={label}>
                     <ToolbarBtn icon={icon} label={label} />
@@ -1984,8 +1905,7 @@ function Ex13() {
       </Box>
       <Slider label="WIDTH" value={w} min={80} max={680} onChange={setW} />
       <span style={{ fontSize: 11, color: C.muted, fontFamily: C.mono }}>
-        drag left — separators auto-hide so the toolbar never ends with a
-        divider
+        drag left — separators auto-hide so the toolbar never ends with a divider
       </span>
     </Shell>
   )
@@ -2062,10 +1982,9 @@ export default function OverflowContainerExamples() {
         </div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {(
-            [['ALL', null], ...SECTIONS.map((s) => [s.label, s.label])] as Array<[
-              string,
-              string | null,
-            ]>
+            [['ALL', null], ...SECTIONS.map((s) => [s.label, s.label])] as Array<
+              [string, string | null]
+            >
           ).map(([label, val]) => {
             const sec = SECTIONS.find((s) => s.label === val)
             const isOn = active === val
@@ -2081,11 +2000,7 @@ export default function OverflowContainerExamples() {
                   fontSize: 11,
                   fontFamily: C.mono,
                   transition: 'all 0.1s',
-                  background: isOn
-                    ? sec
-                      ? sec.color + '20'
-                      : C.raised
-                    : 'transparent',
+                  background: isOn ? (sec ? sec.color + '20' : C.raised) : 'transparent',
                   color: isOn ? (sec ? sec.color : C.heading) : C.muted,
                 }}
               >
@@ -2108,10 +2023,7 @@ export default function OverflowContainerExamples() {
         }}
       >
         {visible.map(({ label, color, examples }) => (
-          <div
-            key={label}
-            style={{ display: 'flex', flexDirection: 'column', gap: 40 }}
-          >
+          <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 40 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span
                 style={{

@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "import", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "off",
+    "perf": "warn"
+  },
+  "options": {
+    "typeAware": true,
+    "typeCheck": true
+  },
+  "env": {
+    "builtin": true
+  },
+  "rules": {
+    "typescript/no-unsafe-type-assertion": "off"
+  },
+  "ignorePatterns": [
+    "**/.nx/**",
+    "**/.svelte-kit/**",
+    "**/build/**",
+    "**/coverage/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/snap/**",
+    "**/vite.config.*.timestamp-*.*"
+  ]
+}

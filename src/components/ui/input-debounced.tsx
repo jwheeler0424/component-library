@@ -1,8 +1,11 @@
+import type { DebouncerOptions } from '@tanstack/pacer'
+
 import { Debouncer } from '@tanstack/pacer'
 import * as React from 'react'
-import { Input } from './input'
-import type { DebouncerOptions } from '@tanstack/pacer'
+
 import { useIsomorphicLayoutEffect } from '@/hooks/use-isomorphic-effect'
+
+import { Input } from './input'
 
 type Mode = 'leading' | 'trailing' | 'both'
 
@@ -10,52 +13,49 @@ export type InputDebouncedHandle = {
   flush: () => void
   cancel: () => void
   reset: () => void
-  setOptions: (
-    options: Partial<DebouncerOptions<(next: string) => void>>,
-  ) => void
+  setOptions: (options: Partial<DebouncerOptions<(next: string) => void>>) => void
   getDebouncedValue: () => string | undefined
   getPendingValue: () => string | undefined
 }
 
-export type InputDebouncedProps =
-  React.InputHTMLAttributes<HTMLInputElement> & {
-    value?:
-      | string
-      | number
-      | (ReadonlyArray<string> & string)
-      | (ReadonlyArray<string> & number)
-      | undefined
-    defaultValue?:
-      | string
-      | number
-      | (ReadonlyArray<string> & string)
-      | (ReadonlyArray<string> & number)
-      | undefined
-    waitMs?: number
-    mode?: Mode
-    leading?: boolean
-    trailing?: boolean
-    onValueChange?: (value: string | undefined) => void
-    onDebouncedChange?: (value: string | undefined) => void
-    emitOnMount?: boolean
-    flushOnBlur?: boolean
-    cancelOnEscape?: boolean
-    cancelOnUnmount?: boolean
-    onDebounceStart?: () => void
-    onDebounceEnd?: () => void
-    describedById?: string
-    /**
-     * Generate the live status message. Return null/"" to suppress.
-     */
-    getStatusMessage?: (state: {
-      isDebouncing: boolean
-      error?: string
-      value: string | undefined
-      debouncedValue: string | undefined
-    }) => string | null | undefined
-    devKey?: string
-    ref?: React.Ref<HTMLInputElement | InputDebouncedHandle>
-  }
+export type InputDebouncedProps = React.InputHTMLAttributes<HTMLInputElement> & {
+  value?:
+    | string
+    | number
+    | (ReadonlyArray<string> & string)
+    | (ReadonlyArray<string> & number)
+    | undefined
+  defaultValue?:
+    | string
+    | number
+    | (ReadonlyArray<string> & string)
+    | (ReadonlyArray<string> & number)
+    | undefined
+  waitMs?: number
+  mode?: Mode
+  leading?: boolean
+  trailing?: boolean
+  onValueChange?: (value: string | undefined) => void
+  onDebouncedChange?: (value: string | undefined) => void
+  emitOnMount?: boolean
+  flushOnBlur?: boolean
+  cancelOnEscape?: boolean
+  cancelOnUnmount?: boolean
+  onDebounceStart?: () => void
+  onDebounceEnd?: () => void
+  describedById?: string
+  /**
+   * Generate the live status message. Return null/"" to suppress.
+   */
+  getStatusMessage?: (state: {
+    isDebouncing: boolean
+    error?: string
+    value: string | undefined
+    debouncedValue: string | undefined
+  }) => string | null | undefined
+  devKey?: string
+  ref?: React.Ref<HTMLInputElement | InputDebouncedHandle>
+}
 
 function normalizeInputValue(
   value:
@@ -70,12 +70,7 @@ function normalizeInputValue(
 }
 
 function normalizeDebouncedValue(value: string): string | undefined {
-  if (
-    !value ||
-    value === 'undefined' ||
-    value === 'null' ||
-    value.trim().length <= 0
-  ) {
+  if (!value || value === 'undefined' || value === 'null' || value.trim().length <= 0) {
     return undefined
   }
   return value
@@ -123,9 +118,7 @@ function InputDebounced({
   const [uncontrolledValue, setUncontrolledValue] = React.useState<string>(
     normalizeInputValue(defaultValue),
   )
-  const [debouncedValue, setDebouncedValue] = React.useState<
-    string | undefined
-  >(() => {
+  const [debouncedValue, setDebouncedValue] = React.useState<string | undefined>(() => {
     const initialValue = isControlled
       ? normalizeInputValue(controlledValue)
       : normalizeInputValue(defaultValue)
@@ -133,16 +126,12 @@ function InputDebounced({
   })
   const [isDebouncing, setIsDebouncing] = React.useState(false)
 
-  const inputValue = isControlled
-    ? normalizeInputValue(controlledValue)
-    : uncontrolledValue
+  const inputValue = isControlled ? normalizeInputValue(controlledValue) : uncontrolledValue
 
   // Map mode -> leading/trailing
   const { resolvedLeading, resolvedTrailing } = React.useMemo(() => {
-    if (mode === 'leading')
-      return { resolvedLeading: true, resolvedTrailing: false }
-    if (mode === 'both')
-      return { resolvedLeading: true, resolvedTrailing: true }
+    if (mode === 'leading') return { resolvedLeading: true, resolvedTrailing: false }
+    if (mode === 'both') return { resolvedLeading: true, resolvedTrailing: true }
     return { resolvedLeading: leading, resolvedTrailing: trailing }
   }, [mode, leading, trailing])
 
@@ -173,12 +162,9 @@ function InputDebounced({
   }, [inputValue, debouncer, cancelOnUnmount])
 
   // Fire consumer callback when the debounced value updates.
-  const emitDebouncedChange = React.useCallback(
-    (nextValue: string | undefined) => {
-      onDebouncedChangeRef.current?.(nextValue)
-    },
-    [],
-  )
+  const emitDebouncedChange = React.useCallback((nextValue: string | undefined) => {
+    onDebouncedChangeRef.current?.(nextValue)
+  }, [])
 
   const didMountRef = React.useRef(false)
   useIsomorphicLayoutEffect(() => {
@@ -241,14 +227,10 @@ function InputDebounced({
     rest.onKeyDown?.(event)
   }
 
-  const ariaInvalid =
-    rest['aria-invalid'] === true ||
-    rest['aria-invalid'] === 'true' ||
-    undefined
+  const ariaInvalid = rest['aria-invalid'] === true || rest['aria-invalid'] === 'true' || undefined
 
   const ariaDescribedBy =
-    [rest['aria-describedby'], describedById].filter(Boolean).join(' ') ||
-    undefined
+    [rest['aria-describedby'], describedById].filter(Boolean).join(' ') || undefined
 
   return (
     <Input

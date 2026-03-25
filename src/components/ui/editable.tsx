@@ -1,10 +1,11 @@
 'use client'
-import * as React from 'react'
-import { useRender } from '@base-ui/react/use-render'
 import { mergeProps } from '@base-ui/react/merge-props'
-import { cn } from '@/lib/utils'
+import { useRender } from '@base-ui/react/use-render'
+import * as React from 'react'
+
 import { VisuallyHiddenInput } from '@/components/visually-hidden-input'
 import { useIsomorphicLayoutEffect } from '@/hooks/use-isomorphic-effect'
+import { cn } from '@/lib/utils'
 
 const ROOT_NAME = 'Editable'
 const LABEL_NAME = 'EditableLabel'
@@ -44,10 +45,7 @@ function useStoreContext(consumerName: string) {
   return context
 }
 
-function useStore<T>(
-  selector: (state: StoreState) => T,
-  ogStore?: Store | null,
-): T {
+function useStore<T>(selector: (state: StoreState) => T, ogStore?: Store | null): T {
   const contextStore = React.useContext(StoreContext)
   const store = ogStore ?? contextStore
 
@@ -55,10 +53,7 @@ function useStore<T>(
     throw new Error(`\`useStore\` must be used within \`${ROOT_NAME}\``)
   }
 
-  const getSnapshot = React.useCallback(
-    () => selector(store.getState()),
-    [store, selector],
-  )
+  const getSnapshot = React.useCallback(() => selector(store.getState()), [store, selector])
 
   return React.useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot)
 }
@@ -94,10 +89,7 @@ function useEditableContext(consumerName: string) {
   return context
 }
 
-export interface EditableProps extends Omit<
-  useRender.ComponentProps<'div'>,
-  'onSubmit'
-> {
+export interface EditableProps extends Omit<useRender.ComponentProps<'div'>, 'onSubmit'> {
   defaultValue?: string
   value?: string
   onValueChange?: (value: string) => void
@@ -312,18 +304,15 @@ function Editable(props: EditableProps) {
     ],
   )
 
-  const defaultProps: useRender.ElementProps<'div'> & { 'data-slot': string } =
-    {
-      'data-slot': 'editable',
-      id,
-      className: cn('flex min-w-0 flex-col gap-2', className),
-    }
+  const defaultProps: useRender.ElementProps<'div'> & { 'data-slot': string } = {
+    'data-slot': 'editable',
+    id,
+    className: cn('flex min-w-0 flex-col gap-2', className),
+  }
 
   const renderedRoot = useRender({
     defaultTagName: 'div',
-    ref: [ref, handleRootRef].filter(Boolean) as Array<
-      React.Ref<HTMLDivElement>
-    >,
+    ref: [ref, handleRootRef].filter(Boolean) as Array<React.Ref<HTMLDivElement>>,
     render,
     props: mergeProps<'div'>(defaultProps, rootProps),
   })
@@ -367,7 +356,7 @@ function EditableLabel(props: EditableLabelProps) {
     id: context.labelId,
     htmlFor: context.inputId,
     className: cn(
-      "font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 data-required:after:ml-0.5 data-required:after:text-destructive data-required:after:content-['*']",
+      "text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70 data-required:after:ml-0.5 data-required:after:text-destructive data-required:after:content-['*']",
       className,
     ),
     children,
@@ -516,7 +505,7 @@ function EditablePreview(props: EditablePreviewProps) {
     onFocus,
     onKeyDown,
     className: cn(
-      'cursor-text truncate rounded-sm border border-transparent py-1 text-base focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring data-disabled:cursor-not-allowed data-readonly:cursor-default data-empty:text-muted-foreground data-disabled:opacity-50 md:text-sm',
+      'cursor-text truncate rounded-sm border border-transparent py-1 text-base focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden data-disabled:cursor-not-allowed data-disabled:opacity-50 data-empty:text-muted-foreground data-readonly:cursor-default md:text-sm',
       className,
     ),
     children: children ?? (value || context.placeholder),
@@ -680,7 +669,7 @@ function EditableInput(props: EditableInputProps) {
     onChange,
     onKeyDown,
     className: cn(
-      'flex rounded-sm border border-input bg-transparent py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:font-medium file:text-foreground file:text-sm placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+      'flex rounded-sm border border-input bg-transparent py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
       context.autosize ? 'w-auto' : 'w-full',
       className,
     ),
@@ -738,13 +727,7 @@ export interface EditableToolbarProps extends useRender.ComponentProps<'div'> {
 }
 
 function EditableToolbar(props: EditableToolbarProps) {
-  const {
-    className,
-    orientation = 'horizontal',
-    ref,
-    render,
-    ...toolbarProps
-  } = props
+  const { className, orientation = 'horizontal', ref, render, ...toolbarProps } = props
   const context = useEditableContext(TOOLBAR_NAME)
 
   const defaultProps: useRender.ElementProps<'div'> & {
@@ -757,11 +740,7 @@ function EditableToolbar(props: EditableToolbarProps) {
     'aria-orientation': orientation,
     'data-slot': 'editable-toolbar',
     dir: context.dir,
-    className: cn(
-      'flex items-center gap-2',
-      orientation === 'vertical' && 'flex-col',
-      className,
-    ),
+    className: cn('flex items-center gap-2', orientation === 'vertical' && 'flex-col', className),
   }
 
   return useRender({

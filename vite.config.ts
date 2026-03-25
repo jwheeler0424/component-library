@@ -1,25 +1,28 @@
-import { defineConfig } from 'vite'
+import babel from '@rolldown/plugin-babel'
+import tailwindcss from '@tailwindcss/vite'
 import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
-import viteReact from '@vitejs/plugin-react'
-import viteTsConfigPaths from 'vite-tsconfig-paths'
-import tailwindcss from '@tailwindcss/vite'
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import { resolve } from 'node:path'
+import { defineConfig } from 'vite'
 
 const config = defineConfig({
   plugins: [
     devtools(),
-    // this is the plugin that enables path aliases
-    viteTsConfigPaths({
-      projects: ['./tsconfig.json'],
-    }),
+    // nitro({ rollupConfig: { external: [/^@sentry\//] } }),
     tailwindcss(),
     tanstackStart(),
-    viteReact({
-      babel: {
-        plugins: ['babel-plugin-react-compiler'],
-      },
+    react(),
+    babel({
+      presets: [reactCompilerPreset()],
     }),
   ],
+  resolve: {
+    tsconfigPaths: true,
+    alias: {
+      '@': resolve(__dirname, './src'),
+    },
+  },
 })
 
 export default config

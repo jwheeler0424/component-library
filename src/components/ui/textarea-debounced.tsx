@@ -1,8 +1,11 @@
+import type { DebouncerOptions } from '@tanstack/pacer'
+
 import { Debouncer } from '@tanstack/pacer'
 import * as React from 'react'
-import { Textarea } from './textarea'
-import type { DebouncerOptions } from '@tanstack/pacer'
+
 import { useIsomorphicLayoutEffect } from '@/hooks/use-isomorphic-effect'
+
+import { Textarea } from './textarea'
 
 type Mode = 'leading' | 'trailing' | 'both'
 
@@ -10,51 +13,48 @@ export type TextareaDebouncedHandle = {
   flush: () => void
   cancel: () => void
   reset: () => void
-  setOptions: (
-    options: Partial<DebouncerOptions<(next: string) => void>>,
-  ) => void
+  setOptions: (options: Partial<DebouncerOptions<(next: string) => void>>) => void
   getDebouncedValue: () => string
   getPendingValue: () => string
 }
 
-export type TextareaDebouncedProps =
-  React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
-    value?:
-      | string
-      | number
-      | (ReadonlyArray<string> & string)
-      | (ReadonlyArray<string> & number)
-      | undefined
-    defaultValue?:
-      | string
-      | number
-      | (ReadonlyArray<string> & string)
-      | (ReadonlyArray<string> & number)
-      | undefined
-    waitMs?: number
-    mode?: Mode
-    leading?: boolean
-    trailing?: boolean
-    onDebouncedChange?: (value: string) => void
-    emitOnMount?: boolean
-    flushOnBlur?: boolean
-    cancelOnEscape?: boolean
-    cancelOnUnmount?: boolean
-    onDebounceStart?: () => void
-    onDebounceEnd?: () => void
-    describedById?: string
-    /**
-     * Generate the live status message. Return null/"" to suppress.
-     */
-    getStatusMessage?: (state: {
-      isDebouncing: boolean
-      error?: string
-      value: string
-      debouncedValue: string
-    }) => string | null | undefined
-    devKey?: string
-    ref?: React.Ref<HTMLTextAreaElement | TextareaDebouncedHandle>
-  }
+export type TextareaDebouncedProps = React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  value?:
+    | string
+    | number
+    | (ReadonlyArray<string> & string)
+    | (ReadonlyArray<string> & number)
+    | undefined
+  defaultValue?:
+    | string
+    | number
+    | (ReadonlyArray<string> & string)
+    | (ReadonlyArray<string> & number)
+    | undefined
+  waitMs?: number
+  mode?: Mode
+  leading?: boolean
+  trailing?: boolean
+  onDebouncedChange?: (value: string) => void
+  emitOnMount?: boolean
+  flushOnBlur?: boolean
+  cancelOnEscape?: boolean
+  cancelOnUnmount?: boolean
+  onDebounceStart?: () => void
+  onDebounceEnd?: () => void
+  describedById?: string
+  /**
+   * Generate the live status message. Return null/"" to suppress.
+   */
+  getStatusMessage?: (state: {
+    isDebouncing: boolean
+    error?: string
+    value: string
+    debouncedValue: string
+  }) => string | null | undefined
+  devKey?: string
+  ref?: React.Ref<HTMLTextAreaElement | TextareaDebouncedHandle>
+}
 
 function normalizeTextareaValue(
   value:
@@ -115,16 +115,12 @@ function TextareaDebounced({
   })
   const [isDebouncing, setIsDebouncing] = React.useState(false)
 
-  const textareaValue = isControlled
-    ? normalizeTextareaValue(controlledValue)
-    : uncontrolledValue
+  const textareaValue = isControlled ? normalizeTextareaValue(controlledValue) : uncontrolledValue
 
   // Map mode -> leading/trailing
   const { resolvedLeading, resolvedTrailing } = React.useMemo(() => {
-    if (mode === 'leading')
-      return { resolvedLeading: true, resolvedTrailing: false }
-    if (mode === 'both')
-      return { resolvedLeading: true, resolvedTrailing: true }
+    if (mode === 'leading') return { resolvedLeading: true, resolvedTrailing: false }
+    if (mode === 'both') return { resolvedLeading: true, resolvedTrailing: true }
     return { resolvedLeading: leading, resolvedTrailing: trailing }
   }, [mode, leading, trailing])
 
@@ -213,14 +209,10 @@ function TextareaDebounced({
     rest.onKeyDown?.(event)
   }
 
-  const ariaInvalid =
-    rest['aria-invalid'] === true ||
-    rest['aria-invalid'] === 'true' ||
-    undefined
+  const ariaInvalid = rest['aria-invalid'] === true || rest['aria-invalid'] === 'true' || undefined
 
   const ariaDescribedBy =
-    [rest['aria-describedby'], describedById].filter(Boolean).join(' ') ||
-    undefined
+    [rest['aria-describedby'], describedById].filter(Boolean).join(' ') || undefined
 
   return (
     <Textarea

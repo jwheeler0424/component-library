@@ -1,1 +1,1 @@
-export * from './tailwind'
+export * from "./clsx-merge";

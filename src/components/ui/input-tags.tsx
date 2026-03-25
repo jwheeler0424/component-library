@@ -1,94 +1,99 @@
-import { X } from 'lucide-react'
-import * as React from 'react'
-import { mergeProps } from '@base-ui/react/merge-props'
-import { useDirection } from '@base-ui/react/direction-provider'
-import { VisuallyHiddenInput } from '../visually-hidden-input'
-import { Button } from './button'
-import { InputDebounced } from './input-debounced'
-import { Input } from './input'
-import { TextareaDebounced } from './textarea-debounced'
-import { Textarea } from './textarea'
+import { useDirection } from "@base-ui/react/direction-provider";
+import { mergeProps } from "@base-ui/react/merge-props";
+import { X } from "lucide-react";
+import * as React from "react";
+
+import { useIsomorphicLayoutEffect } from "@/hooks/use-isomorphic-effect";
+import { cn } from "@/lib/utils";
+import { composeRefs } from "@/lib/utils/compose-refs";
+
+import type { InputDebouncedProps } from "./input-debounced";
+import type { TextareaDebouncedProps } from "./textarea-debounced";
+
+import { VisuallyHiddenInput } from "../visually-hidden-input";
+import { Button } from "./button";
+import { Input } from "./input";
+import { InputDebounced } from "./input-debounced";
 import {
   InputGroupInput,
   InputGroupInputDebounced,
   InputGroupTextarea,
   InputGroupTextareaDebounced,
-} from './input-group'
-import { Label } from './label'
-import type { TextareaDebouncedProps } from './textarea-debounced'
-import type { InputDebouncedProps } from './input-debounced'
-import { composeRefs } from '@/lib/utils/compose-refs'
-import { cn } from '@/lib/utils'
-import { useIsomorphicLayoutEffect } from '@/hooks/use-isomorphic-effect'
+} from "./input-group";
+import { Label } from "./label";
+import { Textarea } from "./textarea";
+import { TextareaDebounced } from "./textarea-debounced";
 
-type InputValue = string
-type InputElement = HTMLInputElement | HTMLTextAreaElement
+type InputValue = string;
+type InputElement = HTMLInputElement | HTMLTextAreaElement;
 
-const DATA_INPUT_TAGS_ITEM_ATTR = 'data-input-tags-collection-item'
+const DATA_INPUT_TAGS_ITEM_ATTR = "data-input-tags-collection-item";
 
 interface InputTagsContextValue {
-  value: Array<InputValue>
-  onValueChange: (value: Array<InputValue>) => void
-  onItemAdd: (textValue: string, options?: { viaPaste?: boolean }) => boolean
-  onItemRemove: (index: number) => void
-  onItemUpdate: (index: number, newTextValue: string) => void
+  value: Array<InputValue>;
+  onValueChange: (value: Array<InputValue>) => void;
+  onItemAdd: (textValue: string, options?: { viaPaste?: boolean }) => boolean;
+  onItemRemove: (index: number) => void;
+  onItemUpdate: (index: number, newTextValue: string) => void;
   onInputKeydown: (
     event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => void
-  highlightedIndex: number | null
-  setHighlightedIndex: (index: number | null) => void
-  editingIndex: number | null
-  setEditingIndex: (index: number | null) => void
-  displayValue: (value: InputValue) => string
-  onItemLeave: () => void
-  inputRef: React.RefObject<InputElement | null>
-  addOnPaste: boolean
-  addOnTab: boolean
-  delimiter: string
-  disabled: boolean
-  editable: boolean
-  isInvalidInput: boolean
-  loop: boolean
-  readOnly: boolean
-  blurBehavior: 'add' | 'clear' | undefined
-  max: number
-  dir: 'ltr' | 'rtl'
-  id: string
-  inputId: string
-  labelId: string
-  valuesId: string
+  ) => void;
+  highlightedIndex: number | null;
+  setHighlightedIndex: (index: number | null) => void;
+  editingIndex: number | null;
+  setEditingIndex: (index: number | null) => void;
+  displayValue: (value: InputValue) => string;
+  onItemLeave: () => void;
+  inputRef: React.RefObject<InputElement | null>;
+  addOnPaste: boolean;
+  addOnTab: boolean;
+  delimiter: string;
+  disabled: boolean;
+  editable: boolean;
+  isInvalidInput: boolean;
+  loop: boolean;
+  readOnly: boolean;
+  blurBehavior: "add" | "clear" | undefined;
+  max: number;
+  dir: "ltr" | "rtl";
+  id: string;
+  inputId: string;
+  labelId: string;
+  valuesId: string;
 }
 
-const InputTagsContext = React.createContext<InputTagsContextValue | null>(null)
+const InputTagsContext = React.createContext<InputTagsContextValue | null>(
+  null,
+);
 
 function useInputTagsContext(consumerName: string) {
-  const context = React.useContext(InputTagsContext)
+  const context = React.useContext(InputTagsContext);
   if (!context) {
-    throw new Error(`${consumerName} must be used within InputTags`)
+    throw new Error(`${consumerName} must be used within InputTags`);
   }
-  return context
+  return context;
 }
 
 interface InputTagsItemContextValue {
-  id: string
-  value: InputValue
-  index: number
-  isHighlighted: boolean
-  isEditing: boolean
-  disabled?: boolean
-  textId: string
-  displayValue: string
+  id: string;
+  value: InputValue;
+  index: number;
+  isHighlighted: boolean;
+  isEditing: boolean;
+  disabled?: boolean;
+  textId: string;
+  displayValue: string;
 }
 
 const InputTagsItemContext =
-  React.createContext<InputTagsItemContextValue | null>(null)
+  React.createContext<InputTagsItemContextValue | null>(null);
 
 function useInputTagsItemContext(consumerName: string) {
-  const context = React.useContext(InputTagsItemContext)
+  const context = React.useContext(InputTagsItemContext);
   if (!context) {
-    throw new Error(`${consumerName} must be used within InputTagsItem`)
+    throw new Error(`${consumerName} must be used within InputTagsItem`);
   }
-  return context
+  return context;
 }
 
 function composeEventHandlers<E>(
@@ -97,35 +102,35 @@ function composeEventHandlers<E>(
   { checkForDefaultPrevented = true } = {},
 ) {
   return function handleEvent(event: E) {
-    originalEventHandler?.(event)
+    originalEventHandler?.(event);
 
     if (
-      checkForDefaultPrevented === false ||
+      !checkForDefaultPrevented ||
       !(event as unknown as Event).defaultPrevented
     ) {
-      return ourEventHandler?.(event)
+      return ourEventHandler?.(event);
     }
-  }
+  };
 }
 
 function compareNodePosition(a: Node, b: Node) {
-  const position = a.compareDocumentPosition(b)
+  const position = a.compareDocumentPosition(b);
 
   if (
     position & Node.DOCUMENT_POSITION_FOLLOWING ||
     position & Node.DOCUMENT_POSITION_CONTAINED_BY
   ) {
-    return -1
+    return -1;
   }
 
   if (
     position & Node.DOCUMENT_POSITION_PRECEDING ||
     position & Node.DOCUMENT_POSITION_CONTAINS
   ) {
-    return 1
+    return 1;
   }
 
-  return 0
+  return 0;
 }
 
 function useItemCollection<TElement extends HTMLElement>(
@@ -133,27 +138,29 @@ function useItemCollection<TElement extends HTMLElement>(
   attr = DATA_INPUT_TAGS_ITEM_ATTR,
 ) {
   const getItems = React.useCallback(() => {
-    const collectionNode = ref.current
-    if (!collectionNode) return []
+    const collectionNode = ref.current;
+    if (!collectionNode) return [];
 
-    const items = Array.from(collectionNode.querySelectorAll(`[${attr}]`))
-    if (items.length === 0) return []
+    const items = Array.from(collectionNode.querySelectorAll(`[${attr}]`));
+    if (items.length === 0) return [];
 
-    return items.sort(compareNodePosition)
-  }, [ref, attr])
+    return items.sort(compareNodePosition);
+  }, [ref, attr]);
 
   const getEnabledItems = React.useCallback(() => {
-    const items = getItems()
-    return items.filter((item) => item.getAttribute('aria-disabled') !== 'true')
-  }, [getItems])
+    const items = getItems();
+    return items.filter(
+      (item) => item.getAttribute("aria-disabled") !== "true",
+    );
+  }, [getItems]);
 
-  return { getEnabledItems }
+  return { getEnabledItems };
 }
 
 interface UseControllableStateParams<T> {
-  prop?: T
-  defaultProp?: T
-  onChange?: (state: T) => void
+  prop?: T;
+  defaultProp?: T;
+  onChange?: (state: T) => void;
 }
 
 function useControllableState<T>({
@@ -163,76 +170,76 @@ function useControllableState<T>({
 }: UseControllableStateParams<T>) {
   const [uncontrolledValue, setUncontrolledValue] = React.useState<
     T | undefined
-  >(defaultProp)
-  const prevValueRef = React.useRef(uncontrolledValue)
+  >(defaultProp);
+  const prevValueRef = React.useRef(uncontrolledValue);
 
   useIsomorphicLayoutEffect(() => {
-    if (prop !== undefined) return
-    if (prevValueRef.current === uncontrolledValue) return
-    prevValueRef.current = uncontrolledValue
+    if (prop !== undefined) return;
+    if (prevValueRef.current === uncontrolledValue) return;
+    prevValueRef.current = uncontrolledValue;
     if (uncontrolledValue !== undefined) {
-      onChange?.(uncontrolledValue)
+      onChange?.(uncontrolledValue);
     }
-  }, [onChange, prop, uncontrolledValue])
+  }, [onChange, prop, uncontrolledValue]);
 
-  const isControlled = prop !== undefined
-  const value = isControlled ? prop : uncontrolledValue
+  const isControlled = prop !== undefined;
+  const value = isControlled ? prop : uncontrolledValue;
 
   const setValue = React.useCallback(
     (nextValue: React.SetStateAction<T | undefined>) => {
       if (isControlled) {
         const resolvedValue =
-          typeof nextValue === 'function'
+          typeof nextValue === "function"
             ? (nextValue as (value: T | undefined) => T | undefined)(prop)
-            : nextValue
+            : nextValue;
 
         if (resolvedValue !== undefined && resolvedValue !== prop) {
-          onChange?.(resolvedValue)
+          onChange?.(resolvedValue);
         }
-        return
+        return;
       }
 
-      setUncontrolledValue(nextValue)
+      setUncontrolledValue(nextValue);
     },
     [isControlled, onChange, prop],
-  )
+  );
 
-  return [value, setValue] as const
+  return [value, setValue] as const;
 }
 
 const inputTagsControlClassName =
-  'flex-1 bg-transparent outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50'
+  "flex-1 bg-transparent outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50";
 
 const inputTagsTextareaControlClassName =
-  'flex-1 bg-transparent py-2 outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 resize-none'
+  "flex-1 bg-transparent py-2 outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 resize-none";
 
 type InputTagsProps = Omit<
-  React.ComponentPropsWithoutRef<'div'>,
-  'value' | 'defaultValue' | 'onInvalid' | 'children'
+  React.ComponentPropsWithoutRef<"div">,
+  "value" | "defaultValue" | "onInvalid" | "children"
 > & {
-  value?: Array<InputValue>
-  defaultValue?: Array<InputValue>
-  onValueChange?: (value: Array<InputValue>) => void
-  onValidate?: (value: InputValue) => boolean
-  onInvalid?: (value: InputValue) => void
-  displayValue?: (value: InputValue) => string
-  addOnPaste?: boolean
-  addOnTab?: boolean
-  disabled?: boolean
-  editable?: boolean
-  loop?: boolean
-  blurBehavior?: 'add' | 'clear'
-  delimiter?: string
-  max?: number
-  required?: boolean
-  readOnly?: boolean
-  dir?: 'ltr' | 'rtl'
-  name?: string
-  id?: string
+  value?: Array<InputValue>;
+  defaultValue?: Array<InputValue>;
+  onValueChange?: (value: Array<InputValue>) => void;
+  onValidate?: (value: InputValue) => boolean;
+  onInvalid?: (value: InputValue) => void;
+  displayValue?: (value: InputValue) => string;
+  addOnPaste?: boolean;
+  addOnTab?: boolean;
+  disabled?: boolean;
+  editable?: boolean;
+  loop?: boolean;
+  blurBehavior?: "add" | "clear";
+  delimiter?: string;
+  max?: number;
+  required?: boolean;
+  readOnly?: boolean;
+  dir?: "ltr" | "rtl";
+  name?: string;
+  id?: string;
   children?:
     | React.ReactNode
-    | ((context: { value: Array<InputValue> }) => React.ReactNode)
-}
+    | ((context: { value: Array<InputValue> }) => React.ReactNode);
+};
 
 function InputTags({ className, ...props }: InputTagsProps) {
   const {
@@ -248,7 +255,7 @@ function InputTags({ className, ...props }: InputTagsProps) {
     editable = false,
     loop = false,
     blurBehavior,
-    delimiter = ',',
+    delimiter = ",",
     max = Number.POSITIVE_INFINITY,
     readOnly = false,
     required = false,
@@ -260,94 +267,94 @@ function InputTags({ className, ...props }: InputTagsProps) {
     onMouseDown,
     onBlur,
     ...rootProps
-  } = props
+  } = props;
 
   const [value = [], setValue] = useControllableState<Array<InputValue>>({
     prop: valueProp,
     defaultProp: defaultValue,
     onChange: onValueChange,
-  })
+  });
   const [highlightedIndex, setHighlightedIndex] = React.useState<number | null>(
     null,
-  )
-  const [editingIndex, setEditingIndex] = React.useState<number | null>(null)
-  const [isInvalidInput, setIsInvalidInput] = React.useState(false)
-  const collectionRef = React.useRef<HTMLDivElement>(null)
-  const inputRef = React.useRef<InputElement>(null)
-  const reactId = React.useId()
-  const reactInputId = React.useId()
-  const reactLabelId = React.useId()
-  const id = idProp ?? `dice-${reactId}`
-  const inputId = `dice-${reactInputId}`
-  const labelId = `dice-${reactLabelId}`
-  const valuesId = `${id}-values`
-  const resolvedDirection = useDirection() || dirProp || 'ltr'
-  const { getEnabledItems } = useItemCollection(collectionRef)
+  );
+  const [editingIndex, setEditingIndex] = React.useState<number | null>(null);
+  const [isInvalidInput, setIsInvalidInput] = React.useState(false);
+  const collectionRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<InputElement>(null);
+  const reactId = React.useId();
+  const reactInputId = React.useId();
+  const reactLabelId = React.useId();
+  const id = idProp ?? `dice-${reactId}`;
+  const inputId = `dice-${reactInputId}`;
+  const labelId = `dice-${reactLabelId}`;
+  const valuesId = `${id}-values`;
+  const resolvedDirection = useDirection() || dirProp || "ltr";
+  const { getEnabledItems } = useItemCollection(collectionRef);
   const isFormControl = collectionRef.current
-    ? Boolean(collectionRef.current.closest('form'))
-    : true
+    ? Boolean(collectionRef.current.closest("form"))
+    : true;
 
   const onItemAdd = React.useCallback(
     (textValue: string, options?: { viaPaste?: boolean }) => {
-      if (disabled || readOnly) return false
+      if (disabled || readOnly) return false;
 
       if (addOnPaste && options?.viaPaste) {
         const splitValues = textValue
           .split(delimiter)
           .map((v) => v.trim())
-          .filter(Boolean)
+          .filter(Boolean);
 
         if (value.length + splitValues.length > max && max > 0) {
-          onInvalid?.(textValue)
-          return false
+          onInvalid?.(textValue);
+          return false;
         }
 
         const dedupedValues = [
           ...new Set(splitValues.filter((v) => !value.includes(v))),
-        ]
+        ];
         const validValues = dedupedValues.filter(
           (v) => !onValidate || onValidate(v),
-        )
+        );
 
         if (validValues.length === 0) {
           for (const invalidValue of splitValues) {
             if (value.includes(invalidValue)) {
-              onInvalid?.(invalidValue)
+              onInvalid?.(invalidValue);
             }
           }
-          return false
+          return false;
         }
 
-        setValue([...value, ...validValues])
-        return true
+        setValue([...value, ...validValues]);
+        return true;
       }
 
       if (value.length >= max && max > 0) {
-        onInvalid?.(textValue)
-        return false
+        onInvalid?.(textValue);
+        return false;
       }
 
-      const trimmedValue = textValue.trim()
+      const trimmedValue = textValue.trim();
 
-      if (!trimmedValue) return false
+      if (!trimmedValue) return false;
 
       if (onValidate && !onValidate(trimmedValue)) {
-        setIsInvalidInput(true)
-        onInvalid?.(trimmedValue)
-        return false
+        setIsInvalidInput(true);
+        onInvalid?.(trimmedValue);
+        return false;
       }
 
       if (value.includes(trimmedValue)) {
-        setIsInvalidInput(true)
-        onInvalid?.(trimmedValue)
-        return true
+        setIsInvalidInput(true);
+        onInvalid?.(trimmedValue);
+        return true;
       }
 
-      setValue([...value, trimmedValue])
-      setHighlightedIndex(null)
-      setEditingIndex(null)
-      setIsInvalidInput(false)
-      return true
+      setValue([...value, trimmedValue]);
+      setHighlightedIndex(null);
+      setEditingIndex(null);
+      setIsInvalidInput(false);
+      return true;
     },
     [
       addOnPaste,
@@ -360,197 +367,197 @@ function InputTags({ className, ...props }: InputTagsProps) {
       setValue,
       value,
     ],
-  )
+  );
 
   const onItemUpdate = React.useCallback(
     (index: number, newTextValue: string) => {
-      if (disabled || readOnly) return
-      if (index === -1) return
+      if (disabled || readOnly) return;
+      if (index === -1) return;
 
-      const trimmedValue = newTextValue.trim()
-      if (!trimmedValue) return
+      const trimmedValue = newTextValue.trim();
+      if (!trimmedValue) return;
 
       const exists = value.some((existingValue, valueIndex) => {
-        if (valueIndex === index) return false
-        return existingValue === trimmedValue
-      })
+        if (valueIndex === index) return false;
+        return existingValue === trimmedValue;
+      });
 
       if (exists || (onValidate && !onValidate(trimmedValue))) {
-        setIsInvalidInput(true)
-        onInvalid?.(trimmedValue)
-        return
+        setIsInvalidInput(true);
+        onInvalid?.(trimmedValue);
+        return;
       }
 
-      const newValues = [...value]
-      newValues[index] = displayValue(trimmedValue)
-      setValue(newValues)
-      setHighlightedIndex(index)
-      setEditingIndex(null)
-      setIsInvalidInput(false)
-      requestAnimationFrame(() => inputRef.current?.focus())
+      const newValues = [...value];
+      newValues[index] = displayValue(trimmedValue);
+      setValue(newValues);
+      setHighlightedIndex(index);
+      setEditingIndex(null);
+      setIsInvalidInput(false);
+      requestAnimationFrame(() => inputRef.current?.focus());
     },
     [disabled, displayValue, onInvalid, onValidate, readOnly, setValue, value],
-  )
+  );
 
   const onItemRemove = React.useCallback(
     (index: number) => {
-      if (disabled || readOnly) return
-      if (index === -1) return
+      if (disabled || readOnly) return;
+      if (index === -1) return;
 
-      const newValues = [...value]
-      newValues.splice(index, 1)
-      setValue(newValues)
-      setHighlightedIndex(null)
-      setEditingIndex(null)
-      inputRef.current?.focus()
+      const newValues = [...value];
+      newValues.splice(index, 1);
+      setValue(newValues);
+      setHighlightedIndex(null);
+      setEditingIndex(null);
+      inputRef.current?.focus();
     },
     [disabled, readOnly, setValue, value],
-  )
+  );
 
   const onItemLeave = React.useCallback(() => {
-    setHighlightedIndex(null)
-    setEditingIndex(null)
-    inputRef.current?.focus()
-  }, [])
+    setHighlightedIndex(null);
+    setEditingIndex(null);
+    inputRef.current?.focus();
+  }, []);
 
   const onInputKeydown = React.useCallback(
     (event: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const target = event.currentTarget
+      const target = event.currentTarget;
       const isArrowLeft =
-        (event.key === 'ArrowLeft' && resolvedDirection === 'ltr') ||
-        (event.key === 'ArrowRight' && resolvedDirection === 'rtl')
+        (event.key === "ArrowLeft" && resolvedDirection === "ltr") ||
+        (event.key === "ArrowRight" && resolvedDirection === "rtl");
       const isArrowRight =
-        (event.key === 'ArrowRight' && resolvedDirection === 'ltr') ||
-        (event.key === 'ArrowLeft' && resolvedDirection === 'rtl')
+        (event.key === "ArrowRight" && resolvedDirection === "ltr") ||
+        (event.key === "ArrowLeft" && resolvedDirection === "rtl");
 
       if (target.value && target.selectionStart !== 0) {
-        setHighlightedIndex(null)
-        setEditingIndex(null)
-        return
+        setHighlightedIndex(null);
+        setEditingIndex(null);
+        return;
       }
 
       function findNextEnabledIndex(
         currentIndex: number | null,
-        direction: 'next' | 'prev',
+        direction: "next" | "prev",
       ): number | null {
-        const enabledItems = getEnabledItems()
+        const enabledItems = getEnabledItems();
         const enabledIndices = enabledItems
           .map((item) => {
-            const index = Number(item.getAttribute('data-input-tags-index'))
-            return Number.isFinite(index) ? index : null
+            const index = Number(item.getAttribute("data-input-tags-index"));
+            return Number.isFinite(index) ? index : null;
           })
-          .filter((index): index is number => index !== null)
+          .filter((index): index is number => index !== null);
 
-        if (enabledIndices.length === 0) return null
+        if (enabledIndices.length === 0) return null;
 
         if (currentIndex === null) {
-          return direction === 'prev'
+          return direction === "prev"
             ? (enabledIndices[enabledIndices.length - 1] ?? null)
-            : (enabledIndices[0] ?? null)
+            : (enabledIndices[0] ?? null);
         }
 
-        const currentEnabledIndex = enabledIndices.indexOf(currentIndex)
-        if (direction === 'next') {
+        const currentEnabledIndex = enabledIndices.indexOf(currentIndex);
+        if (direction === "next") {
           return currentEnabledIndex >= enabledIndices.length - 1
             ? loop
               ? (enabledIndices[0] ?? null)
               : null
-            : (enabledIndices[currentEnabledIndex + 1] ?? null)
+            : (enabledIndices[currentEnabledIndex + 1] ?? null);
         }
 
         return currentEnabledIndex <= 0
           ? loop
             ? (enabledIndices[enabledIndices.length - 1] ?? null)
             : null
-          : (enabledIndices[currentEnabledIndex - 1] ?? null)
+          : (enabledIndices[currentEnabledIndex - 1] ?? null);
       }
 
       switch (event.key) {
-        case 'Delete':
-        case 'Backspace': {
-          if (target.selectionStart !== 0 || target.selectionEnd !== 0) break
+        case "Delete":
+        case "Backspace": {
+          if (target.selectionStart !== 0 || target.selectionEnd !== 0) break;
 
           if (highlightedIndex !== null) {
-            const nextIndex = findNextEnabledIndex(highlightedIndex, 'next')
-            const prevIndex = findNextEnabledIndex(highlightedIndex, 'prev')
+            const nextIndex = findNextEnabledIndex(highlightedIndex, "next");
+            const prevIndex = findNextEnabledIndex(highlightedIndex, "prev");
             const newIndex =
-              event.key === 'Delete'
+              event.key === "Delete"
                 ? (nextIndex ?? prevIndex)
-                : (prevIndex ?? nextIndex)
+                : (prevIndex ?? nextIndex);
 
-            onItemRemove(highlightedIndex)
-            setHighlightedIndex(newIndex)
-            event.preventDefault()
-          } else if (event.key === 'Backspace' && value.length > 0) {
-            setHighlightedIndex(findNextEnabledIndex(null, 'prev'))
-            event.preventDefault()
+            onItemRemove(highlightedIndex);
+            setHighlightedIndex(newIndex);
+            event.preventDefault();
+          } else if (event.key === "Backspace" && value.length > 0) {
+            setHighlightedIndex(findNextEnabledIndex(null, "prev"));
+            event.preventDefault();
           }
-          break
+          break;
         }
 
-        case 'Enter': {
+        case "Enter": {
           if (highlightedIndex !== null && editable && !disabled) {
-            setEditingIndex(highlightedIndex)
-            event.preventDefault()
+            setEditingIndex(highlightedIndex);
+            event.preventDefault();
           }
-          break
+          break;
         }
 
-        case 'ArrowLeft':
-        case 'ArrowRight': {
+        case "ArrowLeft":
+        case "ArrowRight": {
           if (
             target.selectionStart === 0 &&
             isArrowLeft &&
             highlightedIndex === null &&
             value.length > 0
           ) {
-            setHighlightedIndex(findNextEnabledIndex(null, 'prev'))
-            event.preventDefault()
+            setHighlightedIndex(findNextEnabledIndex(null, "prev"));
+            event.preventDefault();
           } else if (
             target.selectionStart === 0 &&
             isArrowRight &&
             highlightedIndex === null &&
             value.length > 0
           ) {
-            setHighlightedIndex(findNextEnabledIndex(null, 'next'))
-            event.preventDefault()
+            setHighlightedIndex(findNextEnabledIndex(null, "next"));
+            event.preventDefault();
           } else if (highlightedIndex !== null) {
             const nextIndex = findNextEnabledIndex(
               highlightedIndex,
-              isArrowLeft ? 'prev' : 'next',
-            )
+              isArrowLeft ? "prev" : "next",
+            );
             if (nextIndex !== null) {
-              setHighlightedIndex(nextIndex)
-              event.preventDefault()
+              setHighlightedIndex(nextIndex);
+              event.preventDefault();
             } else if (isArrowRight) {
-              setHighlightedIndex(null)
-              requestAnimationFrame(() => target.setSelectionRange(0, 0))
+              setHighlightedIndex(null);
+              requestAnimationFrame(() => target.setSelectionRange(0, 0));
             }
           }
-          break
+          break;
         }
 
-        case 'Home': {
+        case "Home": {
           if (value.length > 0) {
-            setHighlightedIndex(findNextEnabledIndex(null, 'next'))
-            event.preventDefault()
+            setHighlightedIndex(findNextEnabledIndex(null, "next"));
+            event.preventDefault();
           }
-          break
+          break;
         }
 
-        case 'End': {
+        case "End": {
           if (value.length > 0) {
-            setHighlightedIndex(findNextEnabledIndex(null, 'prev'))
-            event.preventDefault()
+            setHighlightedIndex(findNextEnabledIndex(null, "prev"));
+            event.preventDefault();
           }
-          break
+          break;
         }
 
-        case 'Escape': {
-          if (highlightedIndex !== null) setHighlightedIndex(null)
-          if (editingIndex !== null) setEditingIndex(null)
-          requestAnimationFrame(() => target.setSelectionRange(0, 0))
-          break
+        case "Escape": {
+          if (highlightedIndex !== null) setHighlightedIndex(null);
+          if (editingIndex !== null) setEditingIndex(null);
+          requestAnimationFrame(() => target.setSelectionRange(0, 0));
+          break;
         }
       }
     },
@@ -565,16 +572,16 @@ function InputTags({ className, ...props }: InputTagsProps) {
       resolvedDirection,
       value.length,
     ],
-  )
+  );
 
   const getIsClickedInEmptyRoot = React.useCallback((target: HTMLElement) => {
     return (
       collectionRef.current?.contains(target) &&
       !target.hasAttribute(DATA_INPUT_TAGS_ITEM_ATTR) &&
-      target.tagName !== 'INPUT' &&
-      target.tagName !== 'TEXTAREA'
-    )
-  }, [])
+      target.tagName !== "INPUT" &&
+      target.tagName !== "TEXTAREA"
+    );
+  }, []);
 
   return (
     <InputTagsContext.Provider
@@ -612,31 +619,31 @@ function InputTags({ className, ...props }: InputTagsProps) {
       <div
         id={id}
         data-slot="input-tags"
-        data-disabled={disabled ? '' : undefined}
-        data-invalid={isInvalidInput ? '' : undefined}
-        data-readonly={readOnly ? '' : undefined}
+        data-disabled={disabled ? "" : undefined}
+        data-invalid={isInvalidInput ? "" : undefined}
+        data-readonly={readOnly ? "" : undefined}
         dir={resolvedDirection}
-        className={cn('flex w-[380px] flex-col gap-2', className)}
+        className={cn("flex w-95 flex-col gap-2", className)}
         {...rootProps}
         ref={collectionRef}
         onClick={composeEventHandlers(onClick, (event) => {
-          const target = event.target
-          if (!(target instanceof HTMLElement)) return
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
 
           if (
             getIsClickedInEmptyRoot(target) &&
             document.activeElement !== inputRef.current
           ) {
-            event.currentTarget.focus()
-            inputRef.current?.focus()
+            event.currentTarget.focus();
+            inputRef.current?.focus();
           }
         })}
         onMouseDown={composeEventHandlers(onMouseDown, (event) => {
-          const target = event.target
-          if (!(target instanceof HTMLElement)) return
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
 
           if (getIsClickedInEmptyRoot(target)) {
-            event.preventDefault()
+            event.preventDefault();
           }
         })}
         onBlur={composeEventHandlers(onBlur, (event) => {
@@ -644,11 +651,11 @@ function InputTags({ className, ...props }: InputTagsProps) {
             event.relatedTarget !== inputRef.current &&
             !collectionRef.current?.contains(event.relatedTarget)
           ) {
-            requestAnimationFrame(() => setHighlightedIndex(null))
+            requestAnimationFrame(() => setHighlightedIndex(null));
           }
         })}
       >
-        {typeof children === 'function' ? children({ value }) : children}
+        {typeof children === "function" ? children({ value }) : children}
         {isFormControl && name && (
           <VisuallyHiddenInput
             type="hidden"
@@ -661,14 +668,14 @@ function InputTags({ className, ...props }: InputTagsProps) {
         )}
       </div>
     </InputTagsContext.Provider>
-  )
+  );
 }
 
 function InputTagsLabel({
   className,
   ...props
 }: React.ComponentProps<typeof Label>) {
-  const context = useInputTagsContext('InputTagsLabel')
+  const context = useInputTagsContext("InputTagsLabel");
 
   return (
     <Label
@@ -676,16 +683,16 @@ function InputTagsLabel({
       htmlFor={context.inputId}
       data-slot="input-tags-label"
       className={cn(
-        'font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
+        "text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
         className,
       )}
       {...props}
     />
-  )
+  );
 }
 
-function InputTagsList({ className, ...props }: React.ComponentProps<'div'>) {
-  const context = useInputTagsContext('InputTagsList')
+function InputTagsList({ className, ...props }: React.ComponentProps<"div">) {
+  const context = useInputTagsContext("InputTagsList");
 
   return (
     <div
@@ -693,158 +700,158 @@ function InputTagsList({ className, ...props }: React.ComponentProps<'div'>) {
       role="list"
       data-slot="input-tags-list"
       className={cn(
-        'flex min-h-10 w-full flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm focus-within:ring-1 focus-within:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+        "flex min-h-10 w-full flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm focus-within:ring-1 focus-within:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}
     />
-  )
+  );
 }
 
-function InputTagsValues({ className, ...props }: React.ComponentProps<'div'>) {
-  const context = useInputTagsContext('InputTagsValues')
+function InputTagsValues({ className, ...props }: React.ComponentProps<"div">) {
+  const context = useInputTagsContext("InputTagsValues");
 
   return (
     <div
       id={props.id ?? context.valuesId}
       role="list"
       data-slot="input-tags-values"
-      className={cn('flex flex-wrap items-center gap-1.5', className)}
+      className={cn("flex flex-wrap items-center gap-1.5", className)}
       {...props}
     />
-  )
+  );
 }
 
 function InputTagsInput({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<'input'>) {
+}: React.ComponentPropsWithoutRef<"input">) {
   const inputProps = useInputTagsInputProps({
     ...props,
     className: cn(inputTagsControlClassName, className),
-  })
+  });
 
-  return <Input {...(inputProps as React.ComponentPropsWithoutRef<'input'>)} />
+  return <Input {...(inputProps as React.ComponentPropsWithoutRef<"input">)} />;
 }
 
 function InputTagsInputDebounced({
   className,
   ...props
-}: Omit<InputDebouncedProps, 'ref'>) {
+}: Omit<InputDebouncedProps, "ref">) {
   const inputProps = useInputTagsInputProps(
     {
       ...props,
-      'data-slot': 'input-tags-input-debounced',
+      "data-slot": "input-tags-input-debounced",
       className: cn(inputTagsControlClassName, className),
-    } as React.ComponentPropsWithoutRef<'input'>,
+    } as React.ComponentPropsWithoutRef<"input">,
     undefined,
     { detectDelimiter: false },
-  )
+  );
 
-  return <InputDebounced {...(inputProps as InputDebouncedProps)} />
+  return <InputDebounced {...(inputProps as InputDebouncedProps)} />;
 }
 
 function InputTagsTextarea({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<'textarea'>) {
+}: React.ComponentPropsWithoutRef<"textarea">) {
   const textareaProps = useInputTagsTextareaProps({
     ...props,
     className: cn(inputTagsTextareaControlClassName, className),
-  })
+  });
 
   return (
     <Textarea
-      {...(textareaProps as React.ComponentPropsWithoutRef<'textarea'>)}
+      {...(textareaProps as React.ComponentPropsWithoutRef<"textarea">)}
     />
-  )
+  );
 }
 
 function InputTagsTextareaDebounced({
   className,
   ...props
-}: Omit<TextareaDebouncedProps, 'ref'>) {
+}: Omit<TextareaDebouncedProps, "ref">) {
   const textareaProps = useInputTagsTextareaProps(
     {
       ...props,
-      'data-slot': 'input-tags-textarea-debounced',
+      "data-slot": "input-tags-textarea-debounced",
       className: cn(inputTagsTextareaControlClassName, className),
-    } as React.ComponentPropsWithoutRef<'textarea'>,
+    } as React.ComponentPropsWithoutRef<"textarea">,
     undefined,
     { detectDelimiter: false, addOnEnter: false, addOnTab: false },
-  )
+  );
 
-  return <TextareaDebounced {...(textareaProps as TextareaDebouncedProps)} />
+  return <TextareaDebounced {...(textareaProps as TextareaDebouncedProps)} />;
 }
 
 function InputTagsInputGroupInput({
   className,
   ...props
-}: Omit<React.ComponentProps<typeof InputGroupInput>, 'ref'>) {
+}: Omit<React.ComponentProps<typeof InputGroupInput>, "ref">) {
   const inputProps = useInputTagsInputProps({
     ...props,
-    'data-slot': 'input-tags-input-group-input',
+    "data-slot": "input-tags-input-group-input",
     className: cn(inputTagsControlClassName, className),
-  } as React.ComponentPropsWithoutRef<'input'>)
+  } as React.ComponentPropsWithoutRef<"input">);
 
-  return <InputGroupInput {...(inputProps as React.ComponentProps<'input'>)} />
+  return <InputGroupInput {...(inputProps as React.ComponentProps<"input">)} />;
 }
 
 function InputTagsInputGroupInputDebounced({
   className,
   ...props
-}: Omit<InputDebouncedProps, 'ref'>) {
+}: Omit<InputDebouncedProps, "ref">) {
   const inputProps = useInputTagsInputProps(
     {
       ...props,
-      'data-slot': 'input-tags-input-group-input-debounced',
+      "data-slot": "input-tags-input-group-input-debounced",
       className: cn(inputTagsControlClassName, className),
-    } as React.ComponentPropsWithoutRef<'input'>,
+    } as React.ComponentPropsWithoutRef<"input">,
     undefined,
     { detectDelimiter: false },
-  )
+  );
 
   return (
     <InputGroupInputDebounced
       {...(inputProps as React.ComponentProps<typeof InputGroupInputDebounced>)}
     />
-  )
+  );
 }
 
 function InputTagsInputGroupTextarea({
   className,
   ...props
-}: Omit<React.ComponentProps<typeof InputGroupTextarea>, 'ref'>) {
+}: Omit<React.ComponentProps<typeof InputGroupTextarea>, "ref">) {
   const textareaProps = useInputTagsTextareaProps(
     {
       ...props,
-      'data-slot': 'input-tags-input-group-textarea',
+      "data-slot": "input-tags-input-group-textarea",
       className: cn(inputTagsTextareaControlClassName, className),
-    } as React.ComponentPropsWithoutRef<'textarea'>,
+    } as React.ComponentPropsWithoutRef<"textarea">,
     undefined,
     { detectDelimiter: false, addOnEnter: false, addOnTab: false },
-  )
+  );
 
   return (
     <InputGroupTextarea
       {...(textareaProps as React.ComponentProps<typeof InputGroupTextarea>)}
     />
-  )
+  );
 }
 
 function InputTagsInputGroupTextareaDebounced({
   className,
   ...props
-}: Omit<TextareaDebouncedProps, 'ref'>) {
+}: Omit<TextareaDebouncedProps, "ref">) {
   const textareaProps = useInputTagsTextareaProps(
     {
       ...props,
-      'data-slot': 'input-tags-input-group-textarea-debounced',
+      "data-slot": "input-tags-input-group-textarea-debounced",
       className: cn(inputTagsTextareaControlClassName, className),
-    } as React.ComponentPropsWithoutRef<'textarea'>,
+    } as React.ComponentPropsWithoutRef<"textarea">,
     undefined,
     { detectDelimiter: false, addOnEnter: false, addOnTab: false },
-  )
+  );
 
   return (
     <InputGroupTextareaDebounced
@@ -852,7 +859,7 @@ function InputTagsInputGroupTextareaDebounced({
         typeof InputGroupTextareaDebounced
       >)}
     />
-  )
+  );
 }
 
 function InputTagsItem({
@@ -861,25 +868,25 @@ function InputTagsItem({
   value,
   disabled,
   ...props
-}: React.ComponentPropsWithoutRef<'div'> & {
-  value: InputValue
-  disabled?: boolean
+}: React.ComponentPropsWithoutRef<"div"> & {
+  value: InputValue;
+  disabled?: boolean;
 }) {
   const pointerTypeRef =
-    React.useRef<React.PointerEvent['pointerType']>('touch')
-  const context = useInputTagsContext('InputTagsItem')
-  const id = `dice-${React.useId()}`
-  const textId = `${id}text`
-  const index = context.value.indexOf(value)
-  const isHighlighted = index === context.highlightedIndex
-  const isEditing = index === context.editingIndex
-  const itemDisabled = disabled || context.disabled
-  const displayValue = context.displayValue(value)
+    React.useRef<React.PointerEvent["pointerType"]>("touch");
+  const context = useInputTagsContext("InputTagsItem");
+  const id = `dice-${React.useId()}`;
+  const textId = `${id}text`;
+  const index = context.value.indexOf(value);
+  const isHighlighted = index === context.highlightedIndex;
+  const isEditing = index === context.editingIndex;
+  const itemDisabled = disabled || context.disabled;
+  const displayValue = context.displayValue(value);
 
   const onItemSelect = React.useCallback(() => {
-    context.setHighlightedIndex(index)
-    context.inputRef.current?.focus()
-  }, [context, index])
+    context.setHighlightedIndex(index);
+    context.inputRef.current?.focus();
+  }, [context, index]);
 
   return (
     <InputTagsItemContext.Provider
@@ -902,48 +909,48 @@ function InputTagsItem({
         aria-disabled={itemDisabled}
         data-slot="input-tags-item"
         data-input-tags-index={index}
-        {...{ [DATA_INPUT_TAGS_ITEM_ATTR]: '' }}
-        data-state={isHighlighted ? 'active' : 'inactive'}
-        data-highlighted={isHighlighted ? '' : undefined}
-        data-editing={isEditing ? '' : undefined}
-        data-editable={context.editable ? '' : undefined}
-        data-disabled={itemDisabled ? '' : undefined}
+        {...{ [DATA_INPUT_TAGS_ITEM_ATTR]: "" }}
+        data-state={isHighlighted ? "active" : "inactive"}
+        data-highlighted={isHighlighted ? "" : undefined}
+        data-editing={isEditing ? "" : undefined}
+        data-editable={context.editable ? "" : undefined}
+        data-disabled={itemDisabled ? "" : undefined}
         className={cn(
-          'inline-flex max-w-[calc(100%-8px)] items-center gap-1.5 rounded border bg-transparent px-2.5 py-1 text-sm focus:outline-hidden data-disabled:cursor-not-allowed data-editable:select-none data-editing:bg-transparent data-disabled:opacity-50 data-editing:ring-1 data-editing:ring-ring [&:not([data-editing])]:pr-1.5 [&[data-highlighted]:not([data-editing])]:bg-accent [&[data-highlighted]:not([data-editing])]:text-accent-foreground',
+          "inline-flex max-w-[calc(100%-8px)] items-center gap-1.5 rounded border bg-transparent px-2.5 py-1 text-sm focus:outline-hidden data-disabled:cursor-not-allowed data-disabled:opacity-50 data-editable:select-none data-editing:bg-transparent data-editing:ring-1 data-editing:ring-ring [&:not([data-editing])]:pr-1.5 [&[data-highlighted]:not([data-editing])]:bg-accent [&[data-highlighted]:not([data-editing])]:text-accent-foreground",
           className,
         )}
         {...props}
         onClick={composeEventHandlers(props.onClick, (event) => {
-          event.stopPropagation()
-          if (!isEditing && pointerTypeRef.current !== 'mouse') {
-            onItemSelect()
+          event.stopPropagation();
+          if (!isEditing && pointerTypeRef.current !== "mouse") {
+            onItemSelect();
           }
         })}
         onDoubleClick={composeEventHandlers(props.onDoubleClick, () => {
           if (context.editable && !itemDisabled) {
-            requestAnimationFrame(() => context.setEditingIndex(index))
+            requestAnimationFrame(() => context.setEditingIndex(index));
           }
         })}
         onPointerUp={composeEventHandlers(props.onPointerUp, () => {
-          if (pointerTypeRef.current === 'mouse') {
-            onItemSelect()
+          if (pointerTypeRef.current === "mouse") {
+            onItemSelect();
           }
         })}
         onPointerDown={composeEventHandlers(props.onPointerDown, (event) => {
-          pointerTypeRef.current = event.pointerType
+          pointerTypeRef.current = event.pointerType;
         })}
         onPointerMove={composeEventHandlers(props.onPointerMove, (event) => {
-          pointerTypeRef.current = event.pointerType
+          pointerTypeRef.current = event.pointerType;
 
           if (itemDisabled) {
-            context.onItemLeave()
-          } else if (pointerTypeRef.current === 'mouse') {
-            event.currentTarget.focus({ preventScroll: true })
+            context.onItemLeave();
+          } else if (pointerTypeRef.current === "mouse") {
+            event.currentTarget.focus({ preventScroll: true });
           }
         })}
         onPointerLeave={composeEventHandlers(props.onPointerLeave, (event) => {
           if (event.currentTarget === document.activeElement) {
-            context.onItemLeave()
+            context.onItemLeave();
           }
         })}
       >
@@ -953,50 +960,50 @@ function InputTagsItem({
         </InputTagsItemDelete>
       </div>
     </InputTagsItemContext.Provider>
-  )
+  );
 }
 
 function InputTagsEditableItemText() {
-  const context = useInputTagsContext('InputTagsItemText')
-  const itemContext = useInputTagsItemContext('InputTagsItemText')
-  const [editValue, setEditValue] = React.useState(itemContext.displayValue)
+  const context = useInputTagsContext("InputTagsItemText");
+  const itemContext = useInputTagsItemContext("InputTagsItemText");
+  const [editValue, setEditValue] = React.useState(itemContext.displayValue);
 
   const onBlur = React.useCallback(() => {
-    setEditValue(itemContext.displayValue)
-    context.setEditingIndex(null)
-  }, [context.setEditingIndex, itemContext.displayValue])
+    setEditValue(itemContext.displayValue);
+    context.setEditingIndex(null);
+  }, [context.setEditingIndex, itemContext.displayValue]);
 
   const onChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const target = event.target
-      target.style.width = '0'
-      target.style.width = `${target.scrollWidth + 4}px`
-      setEditValue(target.value)
+      const target = event.target;
+      target.style.width = "0";
+      target.style.width = `${target.scrollWidth + 4}px`;
+      setEditValue(target.value);
     },
     [],
-  )
+  );
 
   const onFocus = React.useCallback(
     (event: React.FocusEvent<HTMLInputElement>) => {
-      event.target.select()
-      event.target.style.width = '0'
-      event.target.style.width = `${event.target.scrollWidth + 4}px`
+      event.target.select();
+      event.target.style.width = "0";
+      event.target.style.width = `${event.target.scrollWidth + 4}px`;
     },
     [],
-  )
+  );
 
   const onKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (event.key === 'Enter') {
-        const index = context.value.indexOf(itemContext.value)
-        context.onItemUpdate(index, editValue)
-      } else if (event.key === 'Escape') {
-        setEditValue(itemContext.displayValue)
-        context.setEditingIndex(null)
-        context.setHighlightedIndex(itemContext.index)
-        context.inputRef.current?.focus()
+      if (event.key === "Enter") {
+        const index = context.value.indexOf(itemContext.value);
+        context.onItemUpdate(index, editValue);
+      } else if (event.key === "Escape") {
+        setEditValue(itemContext.displayValue);
+        context.setEditingIndex(null);
+        context.setHighlightedIndex(itemContext.index);
+        context.inputRef.current?.focus();
       }
-      event.stopPropagation()
+      event.stopPropagation();
     },
     [
       context,
@@ -1005,7 +1012,7 @@ function InputTagsEditableItemText() {
       itemContext.index,
       itemContext.value,
     ],
-  )
+  );
 
   return (
     <Input
@@ -1022,43 +1029,43 @@ function InputTagsEditableItemText() {
       onFocus={onFocus}
       onBlur={onBlur}
       style={{
-        outline: 'none',
-        background: 'inherit',
-        border: 'none',
-        font: 'inherit',
-        color: 'inherit',
+        outline: "none",
+        background: "inherit",
+        border: "none",
+        font: "inherit",
+        color: "inherit",
         padding: 0,
-        minWidth: '1ch',
+        minWidth: "1ch",
       }}
     />
-  )
+  );
 }
 
-function InputTagsItemText(props: React.ComponentPropsWithoutRef<'span'>) {
-  const { children, ...itemTextProps } = props
-  const context = useInputTagsContext('InputTagsItemText')
-  const itemContext = useInputTagsItemContext('InputTagsItemText')
+function InputTagsItemText(props: React.ComponentPropsWithoutRef<"span">) {
+  const { children, ...itemTextProps } = props;
+  const context = useInputTagsContext("InputTagsItemText");
+  const itemContext = useInputTagsItemContext("InputTagsItemText");
 
   if (itemContext.isEditing && context.editable && !itemContext.disabled) {
-    return <InputTagsEditableItemText />
+    return <InputTagsEditableItemText />;
   }
 
   return (
     <span id={itemContext.textId} {...itemTextProps}>
       {children ?? itemContext.displayValue}
     </span>
-  )
+  );
 }
 
 function InputTagsItemDelete(
   props: React.ComponentPropsWithoutRef<typeof Button>,
 ) {
-  const context = useInputTagsContext('InputTagsItemDelete')
-  const itemContext = useInputTagsItemContext('InputTagsItemDelete')
-  const disabled = itemContext.disabled || context.disabled
+  const context = useInputTagsContext("InputTagsItemDelete");
+  const itemContext = useInputTagsItemContext("InputTagsItemDelete");
+  const disabled = itemContext.disabled || context.disabled;
 
   if (itemContext.isEditing) {
-    return null
+    return null;
   }
 
   return (
@@ -1068,29 +1075,29 @@ function InputTagsItemDelete(
       aria-labelledby={itemContext.textId}
       aria-controls={itemContext.id}
       aria-current={itemContext.isHighlighted}
-      data-state={itemContext.isHighlighted ? 'active' : 'inactive'}
-      data-disabled={disabled ? '' : undefined}
+      data-state={itemContext.isHighlighted ? "active" : "inactive"}
+      data-disabled={disabled ? "" : undefined}
       {...props}
       onClick={composeEventHandlers(props.onClick, () => {
-        if (disabled) return
-        const index = context.value.indexOf(itemContext.value)
-        context.onItemRemove(index)
+        if (disabled) return;
+        const index = context.value.indexOf(itemContext.value);
+        context.onItemRemove(index);
       })}
     />
-  )
+  );
 }
 
 function InputTagsClear({
   ...props
 }: React.ComponentPropsWithoutRef<typeof Button> & {
-  forceMount?: boolean
+  forceMount?: boolean;
 }) {
-  const { forceMount, ...clearProps } = props
-  const context = useInputTagsContext('InputTagsClear')
-  const isVisible = context.value.length > 0
+  const { forceMount, ...clearProps } = props;
+  const context = useInputTagsContext("InputTagsClear");
+  const isVisible = context.value.length > 0;
 
   if (!forceMount && !isVisible) {
-    return null
+    return null;
   }
 
   return (
@@ -1098,37 +1105,37 @@ function InputTagsClear({
       type="button"
       data-slot="input-tags-clear"
       aria-disabled={context.disabled}
-      data-state={isVisible ? 'visible' : 'invisible'}
-      data-disabled={context.disabled ? '' : undefined}
+      data-state={isVisible ? "visible" : "invisible"}
+      data-disabled={context.disabled ? "" : undefined}
       {...clearProps}
       onClick={composeEventHandlers(clearProps.onClick, () => {
-        if (context.disabled) return
-        context.onValueChange([])
-        context.inputRef.current?.focus()
+        if (context.disabled) return;
+        context.onValueChange([]);
+        context.inputRef.current?.focus();
       })}
     />
-  )
+  );
 }
 
 interface UseInputTagsControlOptions {
-  detectDelimiter?: boolean
-  addOnEnter?: boolean
-  addOnTab?: boolean
+  detectDelimiter?: boolean;
+  addOnEnter?: boolean;
+  addOnTab?: boolean;
 }
 
-type InputTagsControlElement = HTMLInputElement | HTMLTextAreaElement
+type InputTagsControlElement = HTMLInputElement | HTMLTextAreaElement;
 
 function handleInputTagsBlur(
   target: InputTagsControlElement,
   context: InputTagsContextValue,
   onCommitValue: (target: InputTagsControlElement) => boolean,
 ) {
-  if (context.blurBehavior === 'add') {
-    onCommitValue(target)
+  if (context.blurBehavior === "add") {
+    onCommitValue(target);
   }
 
-  if (context.blurBehavior === 'clear') {
-    target.value = ''
+  if (context.blurBehavior === "clear") {
+    target.value = "";
   }
 }
 
@@ -1136,14 +1143,14 @@ function handleInputTagsDelimiterChange(
   target: InputTagsControlElement,
   context: InputTagsContextValue,
 ) {
-  const delimiter = context.delimiter
+  const delimiter = context.delimiter;
 
   if (delimiter === target.value.slice(-1)) {
-    const value = target.value.slice(0, -1)
-    target.value = ''
+    const value = target.value.slice(0, -1);
+    target.value = "";
     if (value) {
-      context.onItemAdd(value)
-      context.setHighlightedIndex(null)
+      context.onItemAdd(value);
+      context.setHighlightedIndex(null);
     }
   }
 }
@@ -1152,10 +1159,10 @@ function handleInputTagsPaste(
   event: React.ClipboardEvent<InputTagsControlElement>,
   context: InputTagsContextValue,
 ) {
-  event.preventDefault()
-  const value = event.clipboardData.getData('text')
-  context.onItemAdd(value, { viaPaste: true })
-  context.setHighlightedIndex(null)
+  event.preventDefault();
+  const value = event.clipboardData.getData("text");
+  context.onItemAdd(value, { viaPaste: true });
+  context.setHighlightedIndex(null);
 }
 
 function useInputTagsControlBehavior(
@@ -1163,33 +1170,33 @@ function useInputTagsControlBehavior(
   autoFocus: boolean | undefined,
   options: Required<UseInputTagsControlOptions>,
 ) {
-  const context = useInputTagsContext(consumerName)
-  const { detectDelimiter, addOnEnter, addOnTab } = options
+  const context = useInputTagsContext(consumerName);
+  const { detectDelimiter, addOnEnter, addOnTab } = options;
 
   const onCommitValue = React.useCallback(
     (target: HTMLInputElement | HTMLTextAreaElement) => {
-      const value = target.value
-      if (!value) return false
+      const value = target.value;
+      if (!value) return false;
 
-      const isAdded = context.onItemAdd(value)
+      const isAdded = context.onItemAdd(value);
       if (isAdded) {
-        target.value = ''
-        context.setHighlightedIndex(null)
+        target.value = "";
+        context.setHighlightedIndex(null);
       }
 
-      return isAdded
+      return isAdded;
     },
     [context],
-  )
+  );
 
   useIsomorphicLayoutEffect(() => {
-    if (!autoFocus) return
+    if (!autoFocus) return;
 
     const animationFrameId = requestAnimationFrame(() =>
       context.inputRef.current?.focus(),
-    )
-    return () => cancelAnimationFrame(animationFrameId)
-  }, [autoFocus, context.inputRef])
+    );
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [autoFocus, context.inputRef]);
 
   return {
     context,
@@ -1197,167 +1204,167 @@ function useInputTagsControlBehavior(
     addOnEnter,
     addOnTab,
     onCommitValue,
-  }
+  };
 }
 
 function useInputTagsInputProps(
-  props: React.ComponentPropsWithoutRef<'input'>,
+  props: React.ComponentPropsWithoutRef<"input">,
   ref?: React.Ref<HTMLInputElement>,
   options: UseInputTagsControlOptions = {},
 ) {
-  const { autoFocus, ...inputProps } = props
-  const behavior = useInputTagsControlBehavior('InputTagsInput', autoFocus, {
+  const { autoFocus, ...inputProps } = props;
+  const behavior = useInputTagsControlBehavior("InputTagsInput", autoFocus, {
     detectDelimiter: options.detectDelimiter ?? true,
     addOnEnter: options.addOnEnter ?? true,
     addOnTab: options.addOnTab ?? true,
-  })
-  const { context } = behavior
+  });
+  const { context } = behavior;
 
   const onCustomKeydown = React.useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (event.defaultPrevented) return
-      const isAdded = behavior.onCommitValue(event.currentTarget)
-      if (isAdded) event.preventDefault()
+      if (event.defaultPrevented) return;
+      const isAdded = behavior.onCommitValue(event.currentTarget);
+      if (isAdded) event.preventDefault();
     },
     [behavior],
-  )
+  );
 
   const onTab = React.useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (!context.addOnTab || !behavior.addOnTab) return
-      onCustomKeydown(event)
+      if (!context.addOnTab || !behavior.addOnTab) return;
+      onCustomKeydown(event);
     },
     [behavior.addOnTab, context.addOnTab, onCustomKeydown],
-  )
+  );
 
-  return mergeProps<'input'>(
+  return mergeProps<"input">(
     {
-      type: 'text',
+      type: "text",
       id: context.inputId,
-      autoCapitalize: 'off',
-      autoComplete: 'off',
-      autoCorrect: 'off',
-      spellCheck: 'false',
+      autoCapitalize: "off",
+      autoComplete: "off",
+      autoCorrect: "off",
+      spellCheck: "false",
       autoFocus,
-      'aria-labelledby': context.labelId,
-      'aria-readonly': context.readOnly,
-      'aria-controls': context.valuesId,
+      "aria-labelledby": context.labelId,
+      "aria-readonly": context.readOnly,
+      "aria-controls": context.valuesId,
       dir: context.dir,
       disabled: context.disabled,
       readOnly: context.readOnly,
       ref: composeRefs(context.inputRef as React.Ref<HTMLInputElement>, ref),
       onBlur: (event: React.FocusEvent<HTMLInputElement>) => {
-        if (context.readOnly) return
+        if (context.readOnly) return;
 
         handleInputTagsBlur(
           event.currentTarget,
           context,
           behavior.onCommitValue,
-        )
+        );
       },
       onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (context.readOnly || !behavior.detectDelimiter) return
+        if (context.readOnly || !behavior.detectDelimiter) return;
 
-        handleInputTagsDelimiterChange(event.currentTarget, context)
+        handleInputTagsDelimiterChange(event.currentTarget, context);
       },
       onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
-        if (context.readOnly) return
+        if (context.readOnly) return;
 
-        if (event.key === 'Enter' && behavior.addOnEnter) {
-          onCustomKeydown(event)
+        if (event.key === "Enter" && behavior.addOnEnter) {
+          onCustomKeydown(event);
         }
 
-        if (event.key === 'Tab') {
-          onTab(event)
+        if (event.key === "Tab") {
+          onTab(event);
         }
 
-        context.onInputKeydown(event)
+        context.onInputKeydown(event);
         if (event.key.length === 1) {
-          context.setHighlightedIndex(null)
+          context.setHighlightedIndex(null);
         }
       },
       onPaste: (event: React.ClipboardEvent<HTMLInputElement>) => {
-        if (context.readOnly) return
+        if (context.readOnly) return;
 
         if (context.addOnPaste) {
-          handleInputTagsPaste(event, context)
+          handleInputTagsPaste(event, context);
         }
       },
     },
     inputProps,
-  )
+  );
 }
 
 function useInputTagsTextareaProps(
-  props: React.ComponentPropsWithoutRef<'textarea'>,
+  props: React.ComponentPropsWithoutRef<"textarea">,
   ref?: React.Ref<HTMLTextAreaElement>,
   options: UseInputTagsControlOptions = {},
 ) {
-  const { autoFocus, ...textareaProps } = props
-  const behavior = useInputTagsControlBehavior('InputTagsTextarea', autoFocus, {
+  const { autoFocus, ...textareaProps } = props;
+  const behavior = useInputTagsControlBehavior("InputTagsTextarea", autoFocus, {
     detectDelimiter: options.detectDelimiter ?? false,
     addOnEnter: options.addOnEnter ?? false,
     addOnTab: options.addOnTab ?? false,
-  })
-  const { context } = behavior
+  });
+  const { context } = behavior;
 
-  return mergeProps<'textarea'>(
+  return mergeProps<"textarea">(
     {
       id: context.inputId,
-      autoCapitalize: 'off',
-      autoComplete: 'off',
-      autoCorrect: 'off',
+      autoCapitalize: "off",
+      autoComplete: "off",
+      autoCorrect: "off",
       spellCheck: false,
       autoFocus,
-      'aria-labelledby': context.labelId,
-      'aria-readonly': context.readOnly,
-      'aria-controls': context.valuesId,
+      "aria-labelledby": context.labelId,
+      "aria-readonly": context.readOnly,
+      "aria-controls": context.valuesId,
       dir: context.dir,
       disabled: context.disabled,
       readOnly: context.readOnly,
       ref: composeRefs(context.inputRef as React.Ref<HTMLTextAreaElement>, ref),
       onBlur: (event: React.FocusEvent<HTMLTextAreaElement>) => {
-        if (context.readOnly) return
+        if (context.readOnly) return;
 
         handleInputTagsBlur(
           event.currentTarget,
           context,
           behavior.onCommitValue,
-        )
+        );
       },
       onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        if (context.readOnly || !behavior.detectDelimiter) return
+        if (context.readOnly || !behavior.detectDelimiter) return;
 
-        handleInputTagsDelimiterChange(event.currentTarget, context)
+        handleInputTagsDelimiterChange(event.currentTarget, context);
       },
       onKeyDown: (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (context.readOnly) return
+        if (context.readOnly) return;
 
-        if (event.key === 'Enter' && behavior.addOnEnter && !event.shiftKey) {
-          const isAdded = behavior.onCommitValue(event.currentTarget)
-          if (isAdded) event.preventDefault()
+        if (event.key === "Enter" && behavior.addOnEnter && !event.shiftKey) {
+          const isAdded = behavior.onCommitValue(event.currentTarget);
+          if (isAdded) event.preventDefault();
         }
 
-        if (event.key === 'Tab' && behavior.addOnTab && context.addOnTab) {
-          const isAdded = behavior.onCommitValue(event.currentTarget)
-          if (isAdded) event.preventDefault()
+        if (event.key === "Tab" && behavior.addOnTab && context.addOnTab) {
+          const isAdded = behavior.onCommitValue(event.currentTarget);
+          if (isAdded) event.preventDefault();
         }
 
-        context.onInputKeydown(event)
+        context.onInputKeydown(event);
         if (event.key.length === 1) {
-          context.setHighlightedIndex(null)
+          context.setHighlightedIndex(null);
         }
       },
       onPaste: (event: React.ClipboardEvent<HTMLTextAreaElement>) => {
-        if (context.readOnly) return
+        if (context.readOnly) return;
 
         if (context.addOnPaste) {
-          handleInputTagsPaste(event, context)
+          handleInputTagsPaste(event, context);
         }
       },
     },
     textareaProps,
-  )
+  );
 }
 
 export {
@@ -1375,4 +1382,4 @@ export {
   InputTagsInputGroupTextareaDebounced,
   InputTagsItem,
   InputTagsClear,
-}
+};

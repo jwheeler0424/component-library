@@ -102,12 +102,13 @@
  *      </Overflow>
  */
 
-import * as React from 'react'
-import { useRender } from '@base-ui/react/use-render'
 import { mergeProps } from '@base-ui/react/merge-props'
+import { useRender } from '@base-ui/react/use-render'
+import * as React from 'react'
+
 import { Separator } from '@/components/ui/separator'
-import { cn } from '@/lib/utils'
 import { useIsomorphicLayoutEffect } from '@/hooks/use-isomorphic-effect'
+import { cn } from '@/lib/utils'
 
 // ─── Component name constants ─────────────────────────────────────────────────
 
@@ -121,12 +122,7 @@ const SEPARATOR_NAME = 'OverflowSeparator'
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
-export type OverflowOrientation =
-  | 'horizontal'
-  | 'vertical'
-  | 'wrap'
-  | 'grid'
-  | 'none'
+export type OverflowOrientation = 'horizontal' | 'vertical' | 'wrap' | 'grid' | 'none'
 
 export type OverflowFitStrategy = 'preferred' | 'min' | 'balanced'
 
@@ -161,10 +157,7 @@ interface OverflowStoreState {
 interface OverflowStore {
   subscribe: (cb: () => void) => () => void
   getState: () => OverflowStoreState
-  setState: <K extends keyof OverflowStoreState>(
-    key: K,
-    value: OverflowStoreState[K],
-  ) => void
+  setState: <K extends keyof OverflowStoreState>(key: K, value: OverflowStoreState[K]) => void
   /**
    * Apply multiple state keys in one atomic write.
    * Subscribers are notified at most once — even if all four keys change —
@@ -195,12 +188,12 @@ function createStore(initial: OverflowStoreState): OverflowStore {
     },
     batch: (updates) => {
       let changed = false
-      let next = state
+      let next = { ...state }
       for (const k in updates) {
         const key = k as keyof OverflowStoreState
         const val = updates[key] as OverflowStoreState[typeof key]
         if (!Object.is(next[key], val)) {
-          next = { ...next, [key]: val }
+          Object.assign(next, { [key]: val })
           changed = true
         }
       }
@@ -229,8 +222,7 @@ const OverflowContext = React.createContext<OverflowContextValue | null>(null)
 
 function useOverflowContext(consumerName: string): OverflowContextValue {
   const ctx = React.useContext(OverflowContext)
-  if (!ctx)
-    throw new Error(`\`${consumerName}\` must be used within \`${ROOT_NAME}\``)
+  if (!ctx) throw new Error(`\`${consumerName}\` must be used within \`${ROOT_NAME}\``)
   return ctx
 }
 
@@ -244,12 +236,7 @@ function useOverflowContext(consumerName: string): OverflowContextValue {
  *   • OverflowActions   → registerActions (when inside OverflowGroup)
  */
 interface OverflowRegistrationContextValue {
-  registerItem: (
-    id: string,
-    el: HTMLElement,
-    node: React.ReactNode,
-    isSeparator?: boolean,
-  ) => void
+  registerItem: (id: string, el: HTMLElement, node: React.ReactNode, isSeparator?: boolean) => void
   unregisterItem: (id: string) => void
   registerIndicator: (el: HTMLElement | null) => void
   registerActions: (el: HTMLElement | null) => void
@@ -262,17 +249,13 @@ interface OverflowRegistrationContextValue {
   getHiddenNodes: () => Array<React.ReactNode>
 }
 
-const OverflowRegistrationContext =
-  React.createContext<OverflowRegistrationContextValue | null>(null)
+const OverflowRegistrationContext = React.createContext<OverflowRegistrationContextValue | null>(
+  null,
+)
 
-function useOverflowRegistrationContext(
-  consumerName: string,
-): OverflowRegistrationContextValue {
+function useOverflowRegistrationContext(consumerName: string): OverflowRegistrationContextValue {
   const ctx = React.useContext(OverflowRegistrationContext)
-  if (!ctx)
-    throw new Error(
-      `\`${consumerName}\` must be used within \`${CONTAINER_NAME}\``,
-    )
+  if (!ctx) throw new Error(`\`${consumerName}\` must be used within \`${CONTAINER_NAME}\``)
   return ctx
 }
 
@@ -285,8 +268,7 @@ interface OverflowItemContextValue {
   index: number
 }
 
-const OverflowItemContext =
-  React.createContext<OverflowItemContextValue | null>(null)
+const OverflowItemContext = React.createContext<OverflowItemContextValue | null>(null)
 
 function areSetsEqual(a: ReadonlySet<string>, b: ReadonlySet<string>): boolean {
   if (a.size !== b.size) return false
@@ -343,13 +325,11 @@ function getOuterSizeBounds(
 
   const minW = (parseCssPixelSize(cs.minWidth) ?? 0) + horizontalMargins
   const rawMaxW = parseCssPixelSize(cs.maxWidth)
-  const maxW =
-    rawMaxW === null ? Number.POSITIVE_INFINITY : rawMaxW + horizontalMargins
+  const maxW = rawMaxW === null ? Number.POSITIVE_INFINITY : rawMaxW + horizontalMargins
 
   const minH = (parseCssPixelSize(cs.minHeight) ?? 0) + verticalMargins
   const rawMaxH = parseCssPixelSize(cs.maxHeight)
-  const maxH =
-    rawMaxH === null ? Number.POSITIVE_INFINITY : rawMaxH + verticalMargins
+  const maxH = rawMaxH === null ? Number.POSITIVE_INFINITY : rawMaxH + verticalMargins
 
   return {
     minW,
@@ -361,10 +341,7 @@ function getOuterSizeBounds(
   }
 }
 
-function measureOuterSizeAtWidth(
-  el: HTMLElement,
-  forcedWidth: number,
-): { w: number; h: number } {
+function measureOuterSizeAtWidth(el: HTMLElement, forcedWidth: number): { w: number; h: number } {
   const prev = {
     position: el.style.position,
     left: el.style.left,
@@ -436,10 +413,7 @@ function parseAutoRepeatMinTrack(template: string): number | null {
 
 // ─── useStore — primitive selector hook ──────────────────────────────────────
 
-function useStore<T>(
-  selector: (state: OverflowStoreState) => T,
-  store: OverflowStore,
-): T {
+function useStore<T>(selector: (state: OverflowStoreState) => T, store: OverflowStore): T {
   const getSnapshot = React.useCallback(
     () => selector(store.getState()),
     [store], // selector should be stable (memoised at call-site)
@@ -513,8 +487,7 @@ export function useOverflow() {
  */
 export function useOverflowItem(): OverflowItemContextValue {
   const ctx = React.useContext(OverflowItemContext)
-  if (!ctx)
-    throw new Error(`\`useOverflowItem\` must be used within \`${ITEM_NAME}\``)
+  if (!ctx) throw new Error(`\`useOverflowItem\` must be used within \`${ITEM_NAME}\``)
   return ctx
 }
 
@@ -672,7 +645,7 @@ export function Overflow(props: OverflowProps) {
     id: rootId,
     'data-slot': 'overflow',
     'data-orientation': orientation !== 'none' ? orientation : undefined,
-    className: cn('flex min-w-0 min-h-0 max-w-full', className),
+    className: cn('flex min-h-0 max-w-full min-w-0', className),
     children,
   }
 
@@ -683,11 +656,7 @@ export function Overflow(props: OverflowProps) {
     props: mergeProps(defaultProps, rootProps as Record<string, unknown>),
   }) as React.ReactElement
 
-  return (
-    <OverflowContext.Provider value={context}>
-      {element}
-    </OverflowContext.Provider>
-  )
+  return <OverflowContext.Provider value={context}>{element}</OverflowContext.Provider>
 }
 
 // ─── OverflowGroup ────────────────────────────────────────────────────────────
@@ -818,16 +787,10 @@ export function OverflowGroup(props: OverflowGroupProps) {
   // ── Registration ──────────────────────────────────────────────────────────────
 
   const registerItem = React.useCallback(
-    (
-      id: string,
-      el: HTMLElement,
-      node: React.ReactNode,
-      isSeparator = false,
-    ) => {
+    (id: string, el: HTMLElement, node: React.ReactNode, isSeparator = false) => {
       const prev = registryRef.current.get(id)
       const existingIndex = orderRef.current.indexOf(id)
-      const index =
-        existingIndex === -1 ? orderRef.current.length : existingIndex
+      const index = existingIndex === -1 ? orderRef.current.length : existingIndex
       if (existingIndex === -1) orderRef.current.push(id)
       registryRef.current.set(id, { el, index, node, isSeparator })
       // Eagerly cache size at registration time so calc() has real dimensions
@@ -856,8 +819,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
 
   const registerIndicator = React.useCallback((el: HTMLElement | null) => {
     if (indicatorRef.current === el) return
-    if (indicatorRef.current)
-      itemObserverRef.current?.unobserve(indicatorRef.current)
+    if (indicatorRef.current) itemObserverRef.current?.unobserve(indicatorRef.current)
     indicatorRef.current = el
     if (el) {
       hasIndicatorRef.current = true
@@ -868,8 +830,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
 
   const registerActions = React.useCallback((el: HTMLElement | null) => {
     if (actionsRef.current === el) return
-    if (actionsRef.current)
-      itemObserverRef.current?.unobserve(actionsRef.current)
+    if (actionsRef.current) itemObserverRef.current?.unobserve(actionsRef.current)
     actionsRef.current = el
     if (el) itemObserverRef.current?.observe(el)
     scheduleCalcRef.current()
@@ -906,13 +867,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
       registerActions,
       getHiddenNodes,
     }),
-    [
-      registerItem,
-      unregisterItem,
-      registerIndicator,
-      registerActions,
-      getHiddenNodes,
-    ],
+    [registerItem, unregisterItem, registerIndicator, registerActions, getHiddenNodes],
   )
 
   // ── calc ────────────────────────────────────────────────────────────────────
@@ -925,7 +880,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
     const items = orderRef.current
       .map((id) => {
         const entry = registryRef.current.get(id)
-        return entry ? { id, ...entry } : null
+        return entry ? Object.assign({ id }, entry) : null
       })
       .filter((x): x is NonNullable<typeof x> => x !== null)
       .sort((a, b) => a.index - b.index)
@@ -1024,13 +979,9 @@ export function OverflowGroup(props: OverflowGroupProps) {
     const cg = cssColGap
     const rg = cssRowGap
 
-    const reserveW =
-      orientation === 'horizontal' && aw > 0 ? aw + (n > 0 ? cg : 0) : 0
+    const reserveW = orientation === 'horizontal' && aw > 0 ? aw + (n > 0 ? cg : 0) : 0
     const reserveH =
-      (orientation === 'vertical' ||
-        orientation === 'wrap' ||
-        orientation === 'grid') &&
-      ah > 0
+      (orientation === 'vertical' || orientation === 'wrap' || orientation === 'grid') && ah > 0
         ? ah + (n > 0 ? rg : 0)
         : 0
 
@@ -1162,17 +1113,13 @@ export function OverflowGroup(props: OverflowGroupProps) {
         }
 
         for (let i = 0; i < visible; i++) {
-          const remainingRowSpace = Math.max(
-            0,
-            flowW - (rowUsedW === 0 ? 0 : rowUsedW + cg),
-          )
+          const remainingRowSpace = Math.max(0, flowW - (rowUsedW === 0 ? 0 : rowUsedW + cg))
           const w = pickAxisFitSize(itemSizes[i], 'w', remainingRowSpace)
           const h = pickAxisFitSize(itemSizes[i], 'h')
           if (!pack(w, h)) return false
         }
 
-        if (visible < n && hasIndicatorRef.current && !pack(ow, oh))
-          return false
+        if (visible < n && hasIndicatorRef.current && !pack(ow, oh)) return false
 
         const totalH = usedH + (usedH > 0 ? rg : 0) + rowH
         return totalH <= flowH
@@ -1211,9 +1158,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
       colCount = Math.max(1, colCount)
       const trackW = Math.max(1, (flowW - (colCount - 1) * cg) / colCount)
 
-      const itemHeights = items.map(
-        (item) => getSizeBounds(item.id, item.el, trackW).preferredH,
-      )
+      const itemHeights = items.map((item) => getSizeBounds(item.id, item.el, trackW).preferredH)
       const indicatorH = oel
         ? getSizeBounds('__indicator__', oel, trackW).preferredH
         : indicatorSizeCacheRef.current.h
@@ -1228,10 +1173,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
 
         if (visible < n && hasIndicatorRef.current) {
           const indicatorRow = Math.floor(visible / colCount)
-          rowHeights[indicatorRow] = Math.max(
-            rowHeights[indicatorRow] ?? 0,
-            indicatorH,
-          )
+          rowHeights[indicatorRow] = Math.max(rowHeights[indicatorRow] ?? 0, indicatorH)
         }
 
         if (rowHeights.length === 0) return true
@@ -1255,11 +1197,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
       // the indicator shares the previous row.
       // Skipped entirely when no OverflowIndicator is present.
       const avoidLonelyIndicatorRow =
-        hasIndicatorRef.current &&
-        colCount > 1 &&
-        best > 0 &&
-        best < n &&
-        best % colCount === 0
+        hasIndicatorRef.current && colCount > 1 && best > 0 && best < n && best % colCount === 0
       const resolvedVisible = avoidLonelyIndicatorRow ? best - 1 : best
       visibleCount = resolvedVisible
     }
@@ -1387,8 +1325,8 @@ export function OverflowGroup(props: OverflowGroupProps) {
   } = {
     'data-slot': 'overflow-group',
     className: cn(
-      'relative min-w-0 min-h-0 max-w-full overflow-hidden',
-      fill ? 'flex-1 w-full' : 'w-auto shrink',
+      'relative min-h-0 max-w-full min-w-0 overflow-hidden',
+      fill ? 'w-full flex-1' : 'w-auto shrink',
       className,
     ),
     children,
@@ -1396,10 +1334,7 @@ export function OverflowGroup(props: OverflowGroupProps) {
 
   const element = useRender<Record<string, unknown>, HTMLElement>({
     defaultTagName: 'div',
-    ref: [
-      ref as React.Ref<HTMLDivElement>,
-      containerElRef as React.Ref<HTMLDivElement>,
-    ],
+    ref: [ref as React.Ref<HTMLDivElement>, containerElRef as React.Ref<HTMLDivElement>],
     render,
     props: mergeProps(defaultProps, containerProps as Record<string, unknown>),
   }) as React.ReactElement
@@ -1459,20 +1394,14 @@ export function OverflowItem(props: OverflowItemProps) {
 
   // Read hidden state from store via primitive selector
   const isHidden = useStore(
-    React.useCallback(
-      (s: OverflowStoreState) => s.hiddenIds.has(itemId),
-      [itemId],
-    ),
+    React.useCallback((s: OverflowStoreState) => s.hiddenIds.has(itemId), [itemId]),
     overflowCtx.store,
   )
 
   // True when this item is inside the overscan window: hidden but should stay
   // mounted to allow instant reveal on resize without a tree remount.
   const isOverscan = useStore(
-    React.useCallback(
-      (s: OverflowStoreState) => s.overscanIds.has(itemId),
-      [itemId],
-    ),
+    React.useCallback((s: OverflowStoreState) => s.overscanIds.has(itemId), [itemId]),
     overflowCtx.store,
   )
 
@@ -1503,8 +1432,7 @@ export function OverflowItem(props: OverflowItemProps) {
 
   const requiresLiveMeasurement =
     overflowCtx.orientation === 'grid' || overflowCtx.orientation === 'wrap'
-  const shouldRenderChildren =
-    keepMounted || !isHidden || isOverscan || requiresLiveMeasurement
+  const shouldRenderChildren = keepMounted || !isHidden || isOverscan || requiresLiveMeasurement
   const shouldHideWrapper = isHidden
   const shouldWarmHidden = isHidden && isOverscan && !requiresLiveMeasurement
 
@@ -1548,19 +1476,12 @@ export function OverflowItem(props: OverflowItemProps) {
     props: mergeProps(defaultProps, itemProps as Record<string, unknown>),
   }) as React.ReactElement
 
-  return (
-    <OverflowItemContext.Provider value={itemContext}>
-      {element}
-    </OverflowItemContext.Provider>
-  )
+  return <OverflowItemContext.Provider value={itemContext}>{element}</OverflowItemContext.Provider>
 }
 
 // ─── OverflowIndicator ────────────────────────────────────────────────────────
 
-export interface OverflowIndicatorProps extends Omit<
-  useRender.ComponentProps<'div'>,
-  'children'
-> {
+export interface OverflowIndicatorProps extends Omit<useRender.ComponentProps<'div'>, 'children'> {
   /**
    * When false (default), returns null when not overflowing.
    * When true, always renders — data-visible="" toggles instead.
@@ -1587,14 +1508,7 @@ export interface OverflowIndicatorProps extends Omit<
 }
 
 export function OverflowIndicator(props: OverflowIndicatorProps) {
-  const {
-    forceMount = false,
-    className,
-    ref,
-    render,
-    children,
-    ...indicatorProps
-  } = props
+  const { forceMount = false, className, ref, render, children, ...indicatorProps } = props
 
   const overflowCtx = useOverflowContext(INDICATOR_NAME)
   const registrationCtx = useOverflowRegistrationContext(INDICATOR_NAME)
@@ -1644,8 +1558,7 @@ export function OverflowIndicator(props: OverflowIndicatorProps) {
     isOverflowing,
   }
 
-  const resolvedChildren =
-    typeof children === 'function' ? children(info) : children
+  const resolvedChildren = typeof children === 'function' ? children(info) : children
 
   const defaultProps: useRender.ElementProps<'div'> & {
     'data-slot': string
@@ -1664,10 +1577,7 @@ export function OverflowIndicator(props: OverflowIndicatorProps) {
     ref: [ref as React.Ref<HTMLDivElement>, elRef as React.Ref<HTMLDivElement>],
     render,
     props: mergeProps(
-      { ...defaultProps, children: resolvedChildren } as Record<
-        string,
-        unknown
-      >,
+      { ...defaultProps, children: resolvedChildren } as Record<string, unknown>,
       indicatorProps as Record<string, unknown>,
     ),
   }) as React.ReactElement
@@ -1740,12 +1650,11 @@ export function OverflowActions(props: OverflowActionsProps) {
     return () => registrationCtx.registerActions(null)
   }, [registrationCtx])
 
-  const defaultProps: useRender.ElementProps<'div'> & { 'data-slot': string } =
-    {
-      'data-slot': 'overflow-actions',
-      className: cn('shrink-0', className),
-      children,
-    }
+  const defaultProps: useRender.ElementProps<'div'> & { 'data-slot': string } = {
+    'data-slot': 'overflow-actions',
+    className: cn('shrink-0', className),
+    children,
+  }
 
   return useRender<Record<string, unknown>, HTMLElement>({
     defaultTagName: 'div',
@@ -1805,10 +1714,7 @@ export function OverflowSeparator({
 
   // Read hidden state using the same primitive selector as OverflowItem
   const isHidden = useStore(
-    React.useCallback(
-      (s: OverflowStoreState) => s.hiddenIds.has(itemId),
-      [itemId],
-    ),
+    React.useCallback((s: OverflowStoreState) => s.hiddenIds.has(itemId), [itemId]),
     overflowCtx.store,
   )
 
@@ -1829,15 +1735,13 @@ export function OverflowSeparator({
       style={style}
       className={cn(
         'shrink-0 self-stretch',
-        isHidden && 'invisible pointer-events-none',
+        isHidden && 'pointer-events-none invisible',
         className,
       )}
     >
       <Separator
         orientation={orientation}
-        className={cn(
-          orientation === 'vertical' ? 'h-full w-px' : 'w-full h-px',
-        )}
+        className={cn(orientation === 'vertical' ? 'h-full w-px' : 'h-px w-full')}
       />
     </span>
   )
@@ -1850,11 +1754,7 @@ export interface OverflowAnnouncerProps {
    * Custom announcement string. Receives current state.
    * Defaults to "Showing N of M items. K hidden." / "Showing all N items."
    */
-  announce?: (state: {
-    visibleCount: number
-    hiddenCount: number
-    total: number
-  }) => string
+  announce?: (state: { visibleCount: number; hiddenCount: number; total: number }) => string
 }
 
 /**
@@ -1890,12 +1790,7 @@ export function OverflowAnnouncer({ announce }: OverflowAnnouncerProps) {
       : `Showing all ${total} items.`
 
   return (
-    <span
-      aria-live="polite"
-      aria-atomic="true"
-      data-slot="overflow-announcer"
-      className="sr-only"
-    >
+    <span aria-live="polite" aria-atomic="true" data-slot="overflow-announcer" className="sr-only">
       {message}
     </span>
   )
